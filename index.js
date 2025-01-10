@@ -204,16 +204,28 @@ document.addEventListener("DOMContentLoaded", async () => {
 // start //dev console module
 // this is a dev console module
 
-let devMode = false;
+let devMode = true;
+var changeDevConsoleMode = () => {
+  devMode = document.getElementById("devConsoleInput").value;
+};
 
-function devWebTerminal() {
-  let dev_command = prompt("DEVconsole >>> ");
-  console.log("command used: " + dev_command);
-}
+// if (devMode === true) {
+//   document.getElementById("devConsole").style.display(hidden);
+// }
 
-if (devMode === true) {
-  devWebTerminal();
-}
+var element = document.getElementById("switchToggle");
+
+console.log(element);
+
+element.addEventListener("click", function (event) {
+  console.log(event);
+
+  if (event.target.checked) {
+    console.log("Checked");
+  } else {
+    console.log("Not checked");
+  }
+});
 
 // end // dev console module
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

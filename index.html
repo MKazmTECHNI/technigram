@@ -19,8 +19,6 @@
     <link rel="stylesheet" href="css/reset.css" />
     <link rel="stylesheet" href="css/index.css" />
 
-    <!-- Script -->
-    <script src="js/index.js"></script>
     <!-- workscript -->
     <script defer>
       function setLocalStorageItem() {
@@ -69,16 +67,10 @@
       <button class="submitB" onclick="setLocalStorageItem()">Submit</button>
       <h4>devConsole:</h4>
       <label class="switch">
-        <input type="checkbox" />
+        <input type="checkbox" id="switchToggle" />
         <span class="slider"></span>
       </label>
     </div>
-    <!-- <input
-      type="text"
-      id="devConsoleInput"
-      placeholder="devConsole"
-      onchange="changeDevConsoleMode"
-    /> -->
     <style>
       .submitB {
         color: black;
@@ -117,5 +109,8 @@
         <a href="add_post.html">Add Post</a>
       </div>
     </div>
+
+    <!-- Script -->
+    <script src="js/index.js"></script>
   </body>
 </html>
