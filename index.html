@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Technigram</title>
+
+    <!-- Icons -->
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"
+    />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"
+    />
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="css/reset.css" />
+    <link rel="stylesheet" href="css/index.css" />
+
+    <!-- Script -->
+    <script src="js/index.js"></script>
+    <!-- workscript -->
+    <script defer>
+      function setLocalStorageItem() {
+        const id = document.querySelector("#id").value;
+        const username = document.querySelector("#username").value;
+        const token = document.querySelector("#token").value;
+        const devConsole = document.querySelector("#devConsole").value;
+
+        localStorage.setItem(
+          "currentUser",
+          JSON.stringify({
+            id: `${id}`,
+            username: `${username}`,
+            token: `${token}`,
+          })
+        );
+      }
+      localStorage.setItem();
+    </script>
+    <!-- workscript -->
+  </head>
+  <body>
+    <div class="devConsole" id="devConsole">
+      <div class="commandDisplay"></div>
+      <div class="textareaContainer">
+        <textarea
+          type="text"
+          class="devTerminal"
+          id="terminal"
+          placeholder="enter command..."
+        ></textarea>
+        <button
+          class="commandButtonSubmit"
+          id="commandButtonSubmit"
+          type="button"
+        >
+          Send
+        </button>
+      </div>
+    </div>
+    <!-- workscript -->
+    <div class="workscript">
+      <input type="number" id="id" placeholder="id" />
+      <input type="text" id="username" placeholder="username" />
+      <input type="text" id="token" placeholder="token" />
+      <button class="submitB" onclick="setLocalStorageItem()">Submit</button>
+      <h4>devConsole:</h4>
+      <label class="switch">
+        <input type="checkbox" />
+        <span class="slider"></span>
+      </label>
+    </div>
+    <!-- <input
+      type="text"
+      id="devConsoleInput"
+      placeholder="devConsole"
+      onchange="changeDevConsoleMode"
+    /> -->
+    <style>
+      .submitB {
+        color: black;
+      }
+      .workscript {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+      }
+    </style>
+    <!-- workscript -->
+
+    <header>
+      <div>
+        <img src="images/logo.png" alt="logo" class="logo" />
+        <h1 class="headline">Technigram BETA</h1>
+      </div>
+    </header>
+    <div class="middle">
+      <main>
+        <h2>
+          Just, saying, this is sorta beta access and Technigram itself ain't
+          finished yet.
+        </h2>
+        <div id="notLoggedPopup">
+          <h1>Not Logged In!</h1>
+          <p>You have to be logged in to view posts and all</p>
+          <a href="login.html"><button>Log in</button></a>
+        </div>
+      </main>
+      <div class="sidebar">
+        <div class="profile"><p id="username-display">Not Logged In</p></div>
+        <a href="profile.html">Profile</a>
+        <a href="login.html">Login</a>
+        <a href="add_post.html">Add Post</a>
+      </div>
+    </div>
+  </body>
+</html>
