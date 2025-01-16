@@ -2,7 +2,6 @@ server_adress = "https://technigram.onrender.com";
 
 function convertToImage(base64String1) {
   const base64String = base64String1;
-  const output = document.getElementById("output");
   if (base64String) {
     let imgSrc = base64String;
 
@@ -12,7 +11,7 @@ function convertToImage(base64String1) {
 
     return imgSrc;
   } else {
-    output.innerHTML = "Please enter a valid Base64 string.";
+    prompt("Please enter a valid Base64 string.");
   }
 }
 
@@ -120,7 +119,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // Changing profile
-  const fileInput = document.getElementById("fileInput");
+  const fileInput = document.querySelector("#fileInput");
   profilePictureImg.addEventListener("click", () => fileInput.click());
   fileInput.addEventListener("change", (e) => {
     const file = e.target.files[0];
@@ -138,6 +137,9 @@ document.addEventListener("DOMContentLoaded", async () => {
           canvas.width = w;
           canvas.height = h;
           ctx.drawImage(img, 0, 0, w, h);
+          handleChangeProfilePicture(
+            canvas.toDataURL("image/jpeg", 0.2).split(",")[1]
+          );
           convertToImage(canvas.toDataURL("image/jpeg", 0.2).split(",")[1]);
         };
         img.src = reader.result;
