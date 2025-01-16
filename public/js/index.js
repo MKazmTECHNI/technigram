@@ -1,7 +1,7 @@
 let currentUserId;
 let currentUserName;
 
-server_adress = "https://technigram.onrender.com";
+server_adress = "http://localhost:3000";
 
 // let loggedInAsMessage = document.querySelector(`.headline`);
 // const loggedInAsMessage = document.querySelector("#currently-logged-user`);
@@ -14,6 +14,22 @@ function escapeHTML(unsafe) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+function convertToImage(base64String1) {
+  const base64String = base64String1;
+  const output = document.getElementById("output");
+  if (base64String) {
+    let imgSrc = base64String;
+
+    if (!imgSrc.startsWith("data:image")) {
+      imgSrc = "data:image/png;base64," + imgSrc;
+    }
+
+    return imgSrc;
+  } else {
+    output.innerHTML = "Please enter a valid Base64 string.";
+  }
 }
 
 async function fetchPost(postId) {
@@ -43,7 +59,7 @@ async function fetchPost(postId) {
 
     postDiv.innerHTML = `
       <div class="profile">
-        <img src="${escapeHTML(
+        <img src="${convertToImage(
           postDetails.creatorProfilePicture
         )}" alt="" class="avatar medium" />
         <span class="author">${escapeHTML(postDetails.creatorUsername)}</span>

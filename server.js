@@ -104,6 +104,13 @@ passport.use(
 
         let user;
         let token;
+
+        // Convert image URL to Base64
+        const imageUrl = profile.photos[0].value;
+        const base64Image = await fetch(imageUrl)
+          .then((response) => response.buffer())
+          .then((buffer) => buffer.toString("base64"));
+
         if (result.rows.length > 0) {
           user = result.rows[0];
 
@@ -126,7 +133,7 @@ passport.use(
               VALUES ($1, $2, $3)
               RETURNING id, username, email
             `,
-            values: [profile.displayName, email, profile.photos[0].value],
+            values: [profile.displayName, email, base64Image],
           };
 
           const insertResult = await client.query(insertUserQuery);
@@ -387,6 +394,58 @@ app.get("/profilePicture/:user_id", async (req, res) => {
     res.json(profilePicture);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch profile picture" });
+  }
+});
+
+app.get("/changeProfile", async (req, res) => {
+  const authHeader = req.headers.authorization;
+  const localToken = authHeader && authHeader.split(" ")[1];
+  const { userId, profilePicture } = req.body;
+
+  if (!localToken) {
+    return res
+      .status(401)
+      .json({ success: false, message: "Token not provided" });
+  }
+
+  const result = await checkToken(
+    localToken,
+    userId,
+    connectionString,
+    sslConfig
+  );
+
+  if (!result.success) {
+    return res
+      .status(result.message === "Token does not match" ? 401 : 500)
+      .json(result);
+  }
+
+  const client = new Client({
+    connectionString: connectionString,
+    ssl: sslConfig,
+  });
+
+  try {
+    await client.connect();
+
+    const updateProfilePictureQuery = {
+      text: `
+        UPDATE users
+        SET profile_picture = $1
+        WHERE id = $2
+      `,
+      values: [profilePicture, userId],
+    };
+
+    await client.query(updateProfilePictureQuery);
+
+    res.status(200).json({ message: "Profile picture updated successfully" });
+  } catch (err) {
+    console.error("Error updating profile picture:", err);
+    res.status(500).json({ error: "Failed to update profile picture" });
+  } finally {
+    await client.end();
   }
 });
 

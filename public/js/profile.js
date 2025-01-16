@@ -1,4 +1,21 @@
 server_adress = "https://technigram.onrender.com";
+
+function convertToImage(base64String1) {
+  const base64String = base64String1;
+  const output = document.getElementById("output");
+  if (base64String) {
+    let imgSrc = base64String;
+
+    if (!imgSrc.startsWith("data:image")) {
+      imgSrc = "data:image/png;base64," + imgSrc;
+    }
+
+    return imgSrc;
+  } else {
+    output.innerHTML = "Please enter a valid Base64 string.";
+  }
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
   let currentUserId;
   let currentUserName;
@@ -37,7 +54,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (profilePicture) {
       if (profilePictureImg) {
-        profilePictureImg.src = profilePicture;
+        profilePictureImg.src = convertToImage(profilePicture);
       } else {
         const newImg = document.createElement("img");
         newImg.src = profilePicture;

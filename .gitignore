@@ -31,3 +31,5 @@ config.json
 # here's some mine
 
 .env
+execute-sql.js
+/other/
