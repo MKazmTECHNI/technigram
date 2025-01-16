@@ -1,3 +1,4 @@
+const profilePictureImg = document.querySelector("#profilePicture");
 server_adress = "https://technigram.onrender.com";
 
 function convertToImage(base64String1) {
@@ -74,7 +75,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   //  changing img pic
-  const profilePictureImg = document.querySelector("#profilePicture");
   try {
     const response = await fetch(
       `${server_adress}/profilePicture/${currentUserId}`
@@ -118,14 +118,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Changing profile
   const fileInput = document.getElementById("fileInput");
-  const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d");
-
-  const desiredWidth = 200; // Desired width of the cropped image
-  const desiredHeight = 200; // Desired height of the cropped image
-
   profilePictureImg.addEventListener("click", fileInput.click());
-  fileInput.addEventListener("change", function () {
+  fileInput.addEventListener("change", function (e) {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
