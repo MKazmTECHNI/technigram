@@ -1,4 +1,3 @@
-const profilePictureImg = document.querySelector("#profilePicture");
 server_adress = "https://technigram.onrender.com";
 
 function convertToImage(base64String1) {
@@ -51,6 +50,8 @@ async function handleChangeProfilePicture(sztring) {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
+  const profilePictureImg = document.querySelector("#profilePicture");
+
   let currentUserId;
   let currentUserName;
 
@@ -84,6 +85,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     const data = await response.json();
     const profilePicture = data.userProfilePicture;
+    console.log(data);
+    console.log(profilePicture);
 
     if (profilePicture) {
       if (profilePictureImg) {
@@ -118,8 +121,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Changing profile
   const fileInput = document.getElementById("fileInput");
-  profilePictureImg.addEventListener("click", fileInput.click());
-  fileInput.addEventListener("change", function (e) {
+  profilePictureImg.addEventListener("click", () => fileInput.click());
+  fileInput.addEventListener("change", (e) => {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
