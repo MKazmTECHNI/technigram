@@ -11,11 +11,11 @@ const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
 const app = express();
-const port = 3000;
+const port = 3005;
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(path.join(__dirname, "")));
 
 app.use(
   session({
@@ -397,7 +397,7 @@ app.get("/profilePicture/:user_id", async (req, res) => {
   }
 });
 
-app.get("/changeProfile", async (req, res) => {
+app.post("/changeProfile", async (req, res) => {
   const authHeader = req.headers.authorization;
   const localToken = authHeader && authHeader.split(" ")[1];
   const { userId, profilePicture } = req.body;

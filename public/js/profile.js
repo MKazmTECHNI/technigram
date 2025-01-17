@@ -2,6 +2,7 @@ server_adress = "https://technigram.onrender.com";
 
 function convertToImage(base64String1) {
   const base64String = base64String1;
+  const output = document.getElementById("output");
   if (base64String) {
     let imgSrc = base64String;
 
@@ -11,7 +12,7 @@ function convertToImage(base64String1) {
 
     return imgSrc;
   } else {
-    prompt("Please enter a valid Base64 string.");
+    output.innerHTML = "Please enter a valid Base64 string.";
   }
 }
 
@@ -32,8 +33,8 @@ async function handleChangeProfilePicture(sztring) {
         Authorization: `Bearer ${token}`, // Attach the token in the Authorization header
       },
       body: JSON.stringify({
-        profilePicBase64String: sztring,
-        user_id: userId,
+        profilePicture: sztring,
+        userId: userId,
       }),
     });
 
@@ -119,7 +120,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // Changing profile
-  const fileInput = document.querySelector("#fileInput");
+  const fileInput = document.getElementById("fileInput");
   profilePictureImg.addEventListener("click", () => fileInput.click());
   fileInput.addEventListener("change", (e) => {
     const file = e.target.files[0];
@@ -130,7 +131,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         img.onload = () => {
           const canvas = document.createElement("canvas");
           const ctx = canvas.getContext("2d");
-          const [maxW, maxH] = [280, 140];
+          const [maxW, maxH] = [560, 280];
           let [w, h] = [img.width, img.height];
           if (w > maxW || h > maxH)
             [w, h] = w > h ? [maxW, (h * maxW) / w] : [(w * maxH) / h, maxH];
