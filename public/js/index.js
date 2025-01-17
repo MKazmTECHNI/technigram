@@ -1,7 +1,7 @@
 let currentUserId;
 let currentUserName;
 
-server_adress = "http://localhost:3000";
+server_adress = "https://technigram.onrender.com";
 
 // let loggedInAsMessage = document.querySelector(`.headline`);
 // const loggedInAsMessage = document.querySelector("#currently-logged-user`);
