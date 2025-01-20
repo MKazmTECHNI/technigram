@@ -17,3 +17,4 @@ just understand your topic, it doesn't look or feel so at first, but it is by fa
 
 
 I'll make it prettier and readable in near time, now im trying to make it work back tho
+> I HATE NIGGERS
