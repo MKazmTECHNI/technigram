@@ -108,8 +108,15 @@ passport.use(
         // Convert image URL to Base64
         const imageUrl = profile.photos[0].value;
         const base64Image = await fetch(imageUrl)
-          .then((response) => response.buffer())
-          .then((buffer) => buffer.toString("base64"));
+          .then((response) => {
+            if (!response.ok) throw new Error("Failed to fetch image");
+            return response.arrayBuffer();
+          })
+          .then((arrayBuffer) => Buffer.from(arrayBuffer).toString("base64"))
+          .catch((error) => {
+            console.error("Error fetching image:", error);
+            return null; // Or handle this as necessary
+          });
 
         if (result.rows.length > 0) {
           user = result.rows[0];
