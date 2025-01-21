@@ -1,19 +1,19 @@
-# Here you go, Technigram
+# Technigram Open Source
 
-Is it pretty?
+Nie będzie closed source, piszę backend w JS, ale aż tak nisko nie upadłem.
 
-absolutely not.
+Anyways.
 
-is it here
+Fajna sprawa w tym polega na tym że
 
-yes
+1. Dosłownie możesz sobie napisać swoją wersje strony, widzicie wszyskie routy backendu, więc teoretycznie możecie napisać sobie frontend jak chcecie, i po prostu wysyłać poprawne requesty do `https://technigram.onrender.com` i macie customowego technigrama
 
-one thing i can say for future developers
+2. Noone EVER jest insane enough żeby spędzić dosłownie miesiące pisząc tak powalony software (praktycznie twitter/facebook/insta) od zera, po czym wrzucić to dla wszystkich, ale jeszcze raz: Nie upadłem tak nisko by coś robić closed software
 
-## Dont use chat gpt for such projects. it's not worth your sanity, time and all else it takes
+## Jak chcesz to odpalić u siebie, to się najpierw zaloguj poprzez `DevsSetLocalStorage.html`
 
-just understand your topic, it doesn't look or feel so at first, but it is by far worth it
+Info przekopiuj z localstorage z orginalnego technigrama bo ci nie przejdzie połowa requestów (sprawdzanie tokenu albo potrzebuje id)
 
+# No matter if you're here to learn, read, or exploit: Have fun while on it!
 
-
-I'll make it prettier and readable in near time, now im trying to make it work back tho
+Im just a simple dude who decided that's its completly good idea to code whole ass social media, just as he learned what `<h1>` and `<p>` is.
