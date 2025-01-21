@@ -91,6 +91,7 @@ async function fetchPost(postId) {
 async function handleAddComment(postId) {
   const commentInput = document.querySelector(`#commentInput-${postId}`);
   const commentContent = commentInput.value;
+  commentInput.value = "";
 
   if (!commentContent) {
     alert("Comment content cannot be empty");
@@ -117,7 +118,6 @@ async function handleAddComment(postId) {
         comment_creator_id: currentUser.id, // Use the ID from currentUser object
       }),
     });
-    commentInput.value = "";
 
     if (!response.ok) {
       const errorData = await response.json();
