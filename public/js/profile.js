@@ -119,8 +119,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     const data = await response.json();
     const profilePicture = data.userProfilePicture;
-    console.log(data);
-    console.log(profilePicture);
 
     if (profilePicture) {
       if (profilePictureImg) {
@@ -175,10 +173,12 @@ document.addEventListener("DOMContentLoaded", async () => {
           handleChangeProfilePicture(
             canvas.toDataURL("image/jpeg", 0.2).split(",")[1]
           );
-          img.src = convertToImage(
+          convertToImage(canvas.toDataURL("image/jpeg", 0.2).split(",")[1]);
+          profilePictureImg.src = convertToImage(
             canvas.toDataURL("image/jpeg", 0.2).split(",")[1]
           );
         };
+        img.src = reader.result;
       };
       reader.readAsDataURL(file);
     }
