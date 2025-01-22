@@ -1,4 +1,4 @@
-server_adress = "https://technigram.onrender.com  ";
+server_adress = "https://technigram.onrender.com";
 
 function convertToImage(base64String1) {
   const base64String = base64String1;
