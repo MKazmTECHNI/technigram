@@ -74,10 +74,10 @@ async function fetchPost(postId) {
       </div>
       <footer>
         <div class="comments">
-          <div class="comment-creator">
+          <form class="comment-creator" onsubmit="event.preventDefault(); handleAddComment(${postId})">
             <input type="text" placeholder="Napisz komentarz..." id="commentInput-${postId}" />
-            <button onclick="handleAddComment(${postId})">Add Comment</button>
-          </div>
+            <button>Add Comment</button>
+          </form>
           ${commentsHTML}
         </div>
       </footer>
