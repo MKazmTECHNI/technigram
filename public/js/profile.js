@@ -175,10 +175,10 @@ document.addEventListener("DOMContentLoaded", async () => {
           handleChangeProfilePicture(
             canvas.toDataURL("image/jpeg", 0.2).split(",")[1]
           );
+          img.src = convertToImage(
+            canvas.toDataURL("image/jpeg", 0.2).split(",")[1]
+          );
         };
-        img.src = convertToImage(
-          canvas.toDataURL("image/jpeg", 0.2).split(",")[1]
-        );
       };
       reader.readAsDataURL(file);
     }
