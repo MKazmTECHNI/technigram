@@ -136,11 +136,16 @@ passport.use(
           // First-time registration, insert the new user and generate a token
           const insertUserQuery = {
             text: `
-              INSERT INTO users (username, email, profile_picture)
-              VALUES ($1, $2, $3)
-              RETURNING id, username, email
+              INSERT INTO users (username, email, profile_picture, true_name)
+              VALUES ($1, $2, $3, $4)
+              RETURNING id, username, email, true_name
             `,
-            values: [profile.displayName, email, base64Image],
+            values: [
+              profile.displayName,
+              email,
+              base64Image,
+              profile.displayName,
+            ],
           };
 
           const insertResult = await client.query(insertUserQuery);
@@ -167,12 +172,10 @@ passport.use(
 );
 
 passport.serializeUser((user, done) => {
-  console.log("Serializing user:", user); // Debugging log
   done(null, { id: user.id, username: user.username, token: user.token });
 });
 
 passport.deserializeUser(async (user, done) => {
-  console.log("Deserializing user:", user); // Debugging log
   const client = new Client({
     connectionString: connectionString,
     ssl: sslConfig,
@@ -310,7 +313,7 @@ async function fetchPostDetails(post_id) {
 
     const selectUserQuery = {
       text: `
-        SELECT username, profile_picture FROM users
+        SELECT username, profile_picture, true_name FROM users
         WHERE id = $1
       `,
       values: [post.creator_id],
@@ -320,7 +323,7 @@ async function fetchPostDetails(post_id) {
     if (userResult.rows.length === 0) {
       throw new Error("User not found");
     }
-    const { username, profile_picture } = userResult.rows[0];
+    const { username, profile_picture, true_name } = userResult.rows[0];
 
     const selectCommentsQuery = {
       text: `
@@ -359,6 +362,7 @@ async function fetchPostDetails(post_id) {
       content: post.content,
       creator_id: post.creator_id,
       creatorUsername: username,
+      trueName: true_name,
       creatorProfilePicture: profile_picture,
       likes: post.likes,
       comments: comments,
@@ -451,6 +455,57 @@ app.post("/changeProfile", async (req, res) => {
   } catch (err) {
     console.error("Error updating profile picture:", err);
     res.status(500).json({ error: "Failed to update profile picture" });
+  } finally {
+    await client.end();
+  }
+});
+app.post("/changeUsername", async (req, res) => {
+  const authHeader = req.headers.authorization;
+  const localToken = authHeader && authHeader.split(" ")[1];
+  const { userId, username } = req.body;
+
+  if (!localToken) {
+    return res
+      .status(401)
+      .json({ success: false, message: "Token not provided" });
+  }
+
+  const result = await checkToken(
+    localToken,
+    userId,
+    connectionString,
+    sslConfig
+  );
+
+  if (!result.success) {
+    return res
+      .status(result.message === "Token does not match" ? 401 : 500)
+      .json(result);
+  }
+
+  const client = new Client({
+    connectionString: connectionString,
+    ssl: sslConfig,
+  });
+
+  try {
+    await client.connect();
+
+    const updateUsernameQuery = {
+      text: `
+        UPDATE users
+        SET username = $1
+        WHERE id = $2
+      `,
+      values: [username, userId],
+    };
+
+    await client.query(updateUsernameQuery);
+
+    res.status(200).json({ message: "Username updated successfully" });
+  } catch (err) {
+    console.error("Error updating username:", err);
+    res.status(500).json({ error: "Failed to update username" });
   } finally {
     await client.end();
   }

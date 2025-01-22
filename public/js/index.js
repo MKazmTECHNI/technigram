@@ -53,16 +53,19 @@ async function fetchPost(postId) {
         <p class="description">
           <span class="author">${escapeHTML(comment.username)}:</span>
           ${escapeHTML(comment.comment_content)}
-        </p>
-      `;
+          </p>
+          `;
     });
 
     postDiv.innerHTML = `
-      <div class="profile">
+        <div class="profile">
         <img src="${convertToImage(
           postDetails.creatorProfilePicture
         )}" alt="" class="avatar medium" />
-        <span class="author">${escapeHTML(postDetails.creatorUsername)}</span>
+        <div class="post-names">
+          <span class="author">${escapeHTML(postDetails.creatorUsername)}</span>
+          <span class="true-name">${postDetails.trueName}</span>
+        </div>
       </div>
       <div class="post-content">
         <h3 class="title">${escapeHTML(postDetails.title)}</h3>

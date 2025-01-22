@@ -1,4 +1,4 @@
-server_adress = "https://technigram.onrender.com";
+server_adress = "https://technigram.onrender.com  ";
 
 function convertToImage(base64String1) {
   const base64String = base64String1;
@@ -44,13 +44,48 @@ async function handleChangeProfilePicture(sztring) {
       return;
     }
   } catch (error) {
-    console.error("Error adding comment:", error);
-    alert("Failed to add comment");
+    console.error("Error changing profile picture:", error);
+    alert("Failed to change profile picture");
+  }
+}
+async function handleChangeUsername(sztring) {
+  const currentUser = JSON.parse(localStorage.getItem("currentUser")); // Parse the JSON object
+  const token = currentUser?.token;
+  const userId = currentUser?.id;
+
+  if (!token) {
+    alert("You are not authorized. Please log in first.");
+    return;
+  }
+  try {
+    const response = await fetch(`${server_adress}/changeUsername`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`, // Attach the token in the Authorization header
+      },
+      body: JSON.stringify({
+        username: sztring,
+        userId: userId,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      alert(`Error: ${errorData.message}`);
+      return;
+    }
+  } catch (error) {
+    console.error("Error changing username:", error);
+    alert("Failed to change username");
   }
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
   const profilePictureImg = document.querySelector("#profilePicture");
+  const usernameDisplay = document.querySelector(".username");
+  const usernameForm = document.querySelector(".username-form");
+  const usernameInput = document.querySelector(".username-input");
 
   let currentUserId;
   let currentUserName;
@@ -66,7 +101,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     currentUserId = currentUser.id;
     currentUserName = currentUser.username;
 
-    const usernameDisplay = document.querySelector(".username");
     if (usernameDisplay) {
       usernameDisplay.textContent = currentUserName;
     }
@@ -141,11 +175,32 @@ document.addEventListener("DOMContentLoaded", async () => {
           handleChangeProfilePicture(
             canvas.toDataURL("image/jpeg", 0.2).split(",")[1]
           );
-          convertToImage(canvas.toDataURL("image/jpeg", 0.2).split(",")[1]);
         };
-        img.src = reader.result;
+        img.src = convertToImage(
+          canvas.toDataURL("image/jpeg", 0.2).split(",")[1]
+        );
       };
       reader.readAsDataURL(file);
     }
+  });
+  usernameDisplay.addEventListener("click", () => {
+    usernameForm.style = "display: block;";
+    usernameDisplay.style = "display: none;";
+    usernameInput.value = usernameDisplay.innerText;
+  });
+  usernameForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const newUsername = usernameInput.value.trim();
+    handleChangeUsername(newUsername);
+    usernameDisplay.innerText = newUsername;
+    usernameForm.style = "display: none;";
+    usernameDisplay.style = "display: block;";
+    localStorage.setItem(
+      "currentUser",
+      JSON.stringify({
+        ...JSON.parse(localStorage.getItem("currentUser")),
+        username: newUsername,
+      })
+    );
   });
 });

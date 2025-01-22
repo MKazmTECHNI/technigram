@@ -69,6 +69,10 @@ main {
   border-radius: 21px;
   gap: 5px;
 }
+.post span,
+.post p {
+  font-size: 1.1rem;
+}
 
 .post > div.post-content {
   align-self: flex-start;
@@ -86,11 +90,6 @@ main {
   display: flex;
   flex-direction: row;
   align-items: center;
-}
-
-.post span,
-.post p {
-  font-size: 1.1rem;
 }
 
 .post > div.profile > img {
@@ -113,12 +112,6 @@ main {
   display: flex;
   flex-direction: column;
   gap: 7px;
-}
-
-.post > footer > .stats,
-.post > footer > .description > .author {
-  font-weight: 600;
-  margin-right: 5px;
 }
 
 .post > footer > .comments {
@@ -161,6 +154,18 @@ main {
 span.author {
   font-weight: 600;
   text-decoration: underline;
+}
+.post-names {
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+}
+.author {
+  font-weight: 600;
+  margin-right: 5px;
+}
+span.true-name {
+  font-size: 0.5em;
 }
 
 /* SIDEBAR */

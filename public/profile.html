@@ -40,6 +40,14 @@
           <img src="" alt="pfp" class="pfp" id="profilePicture" />
           <input type="file" id="fileInput" style="display: none" />
           <h1 class="username"></h1>
+          <form
+            onsubmit="event.preventDefault()"
+            class="username-form"
+            style="display: none"
+          >
+            <input type="text" class="username-input" />
+            <button style="color: black">Change</button>
+          </form>
         </div>
       </main>
       <div class="sidebar">
