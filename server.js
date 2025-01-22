@@ -483,6 +483,12 @@ app.post("/changeUsername", async (req, res) => {
       .json(result);
   }
 
+  if (username.length > 28) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Username is too long. Max: 28" });
+  }
+
   const client = new Client({
     connectionString: connectionString,
     ssl: sslConfig,

@@ -191,7 +191,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   usernameForm.addEventListener("submit", (e) => {
     e.preventDefault();
     const newUsername = usernameInput.value.trim();
-    handleChangeUsername(newUsername);
+    try {
+      handleChangeUsername(newUsername);
+    } catch (error) {
+      console.error("Error:", error);
+      return;
+    }
     usernameDisplay.innerText = newUsername;
     usernameForm.style = "display: none;";
     usernameDisplay.style = "display: block;";
