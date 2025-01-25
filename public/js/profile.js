@@ -102,7 +102,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     currentUserName = currentUser.username;
 
     if (usernameDisplay) {
-      usernameDisplay.textContent = currentUserName;
+      usernameDisplay.textContent = currentUserName || "Empty";
     }
   } catch (error) {
     console.error("Error initializing home page:", error);
@@ -197,7 +197,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       console.error("Error:", error);
       return;
     }
-    usernameDisplay.innerText = newUsername;
+    usernameDisplay.innerText = newUsername || "Empty";
     usernameForm.style = "display: none;";
     usernameDisplay.style = "display: block;";
     localStorage.setItem(
