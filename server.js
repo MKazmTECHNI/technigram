@@ -488,7 +488,7 @@ app.post("/changeUsername", async (req, res) => {
       .status(400)
       .json({ success: false, message: "Username is too long. Max: 28" });
   }
-  if (username.length > 3) {
+  if (username.length < 3) {
     return res
       .status(400)
       .json({ success: false, message: "Username is too short. Min: 3" });
