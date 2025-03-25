@@ -74,7 +74,7 @@ async function fetchPost(postId) {
       </div>
       <footer>
         <div class="comments">
-          <form class="comment-creator" onsubmit="event.preventDefault(); handleAddComment(${postId})">
+          <form class="comment-creator" onsubmit="event.preventDefault(); handleAddComment(${postId})">e
             <input type="text" placeholder="Napisz komentarz..." id="commentInput-${postId}" />
             <button>Add Comment</button>
           </form>
@@ -104,7 +104,20 @@ async function handleAddComment(postId) {
   const currentUser = JSON.parse(localStorage.getItem("currentUser")); // Parse the JSON object
   const token = currentUser?.token;
 
-  if (!token) {
+  try {
+    const response = await fetch(`${server_adress}/posts/${postId}/comments`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`, // Attach the token in the Authorization header
+      },
+    });
+    if (!response.ok) {
+      const errorData = await response.json();
+      alert(`Error: ${errorData.message}`);
+      return;
+    }
+  } catch (error) {
     alert("You are not authorized. Please log in first.");
     return;
   }
