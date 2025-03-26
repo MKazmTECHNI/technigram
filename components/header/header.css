@@ -1,0 +1,52 @@
+header {
+  display: flex;
+  position: fixed;
+  width: 100%;
+  top: 0;
+  /* flex-direction: row; */
+  justify-content: space-evenly;
+  align-items: center;
+  /* background: #000; */
+  background: rgba(0, 0, 0, 0.49);
+  /* box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1); */
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(6.6px);
+  padding: 7px;
+  border-bottom: 1px solid #3b3b3b;
+  * {
+    transition: 250ms;
+  }
+}
+
+.logoText {
+  font-size: 2.5rem;
+  background: linear-gradient(to right, #fff 20%, #ff0 40%, #ff0 60%, #fff 80%);
+  background: linear-gradient(
+    to right,
+    #b074ff 20%,
+    #ffffff 40%,
+    #ffffff 60%,
+    #b074ff 80%
+  );
+  background-size: 200% auto;
+  animation: gradient 7s linear infinite;
+  color: transparent;
+  -webkit-background-clip: text;
+}
+
+@keyframes gradient {
+  to {
+    background-position: 200% center;
+  }
+}
+
+nav {
+  display: flex;
+  gap: 49px;
+  * {
+    font-size: 1.1em;
+    &:hover {
+      scale: 1.1;
+    }
+  }
+}

@@ -1,0 +1,128 @@
+/* General Styling */
+:root {
+  --header-background: #1f1f1f;
+  --body-background: #121212;
+  --children-background: #1a1a1a;
+  --background-color: #1e1e1e;
+  --avatar-border-color: rgb(0, 0, 0);
+}
+
+/* Back Button Styling */
+.material-symbols-outlined {
+  font-size: 1.8rem;
+  background-color: var(--header-background);
+  padding: 8px;
+  border-radius: 50%;
+  transition: background-color 0.3s ease;
+}
+
+.material-symbols-outlined:hover {
+  background-color: #333;
+}
+
+/* Form Styling */
+#addPostForm {
+  background-color: var(--children-background);
+  border-radius: 15px;
+  padding: 30px;
+  width: 500px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+  h1 {
+    color: #c6a4ff;
+  }
+}
+
+label {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #ccc;
+}
+
+input[type="text"],
+textarea {
+  padding: 10px;
+  font-size: 1rem;
+  background-color: #101010;
+  color: #fff;
+  border: 1px solid #555;
+  border-radius: 10px;
+  outline: none;
+}
+
+textarea {
+  min-height: 150px;
+  resize: vertical;
+}
+
+/* Button Styling */
+button {
+  background-color: #333;
+  color: white;
+  font-size: 1.2rem;
+  padding: 10px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+button:hover {
+  background-color: #555;
+}
+
+/* Error Message */
+.error {
+  color: red;
+  font-size: 1rem;
+  margin-top: 10px;
+}
+
+/* Miscellaneous */
+img.avatar {
+  box-sizing: content-box;
+  border-radius: 50%;
+  border: 2px solid var(--avatar-border-color);
+}
+
+img.avatar.medium {
+  width: 44px;
+  height: 44px;
+}
+
+div.line {
+  display: flex;
+  flex-direction: row;
+  background: #ffffff;
+  height: 1px;
+}
+
+main {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 21px;
+}
+
+#image-upload {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  background: #101010;
+  padding: 14px;
+  border-radius: 21px;
+  border: 1px dashed #6c6c6c;
+  cursor: pointer;
+  &:hover {
+    scale: 1.01;
+  }
+  img {
+    width: 3vw;
+    aspect-ratio: 1;
+  }
+}

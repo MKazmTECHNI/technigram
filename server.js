@@ -11,7 +11,7 @@ const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
 const app = express();
-const port = 3000;
+const port = 3001;
 
 app.use(cors());
 app.use(express.json());
@@ -299,7 +299,7 @@ async function fetchPostDetails(post_id) {
 
     const selectPostQuery = {
       text: `
-        SELECT title, content, creator_id, likes FROM posts
+        SELECT content, creator_id, created_at, likes FROM posts
         WHERE post_id = $1
       `,
       values: [post_id],
@@ -358,13 +358,13 @@ async function fetchPostDetails(post_id) {
     );
 
     return {
-      title: post.title,
       content: post.content,
       creator_id: post.creator_id,
       creatorUsername: username,
       trueName: true_name,
       creatorProfilePicture: profile_picture,
       likes: post.likes,
+      date: post.created_at,
       comments: comments,
     };
   } catch (err) {
@@ -655,7 +655,7 @@ app.get("/users/:user_id", async (req, res) => {
 app.post("/posts", postCommentLimiter, async (req, res) => {
   const authHeader = req.headers.authorization;
   const localToken = authHeader && authHeader.split(" ")[1];
-  const { creator_id, title, content } = req.body;
+  const { creator_id, content } = req.body;
 
   if (!localToken) {
     return res
@@ -677,10 +677,10 @@ app.post("/posts", postCommentLimiter, async (req, res) => {
       .json(result);
   }
 
-  if (!creator_id || !title || !content) {
+  if (!creator_id || !content) {
     return res
       .status(400)
-      .json({ error: "Creator ID, title, and content are required" });
+      .json({ error: "Creator ID and content are required" });
   }
 
   if (content.length > 1500) {
@@ -701,11 +701,11 @@ app.post("/posts", postCommentLimiter, async (req, res) => {
 
     const insertPostQuery = {
       text: `
-        INSERT INTO posts (creator_id, title, content)
-        VALUES ($1, $2, $3)
-        RETURNING post_id, creator_id, title, content, likes, created_at
+        INSERT INTO posts (creator_id, content)
+        VALUES ($1, $2)
+        RETURNING post_id, creator_id, content, likes, created_at
       `,
-      values: [creator_id, title, content],
+      values: [creator_id, content],
     };
 
     const insertResult = await client.query(insertPostQuery);

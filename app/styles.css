@@ -1,0 +1,94 @@
+.posts {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 21px;
+}
+
+.post {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #595959;
+  width: 700px;
+  border-radius: 14px;
+  padding: 14px;
+  gap: 7px;
+
+  div {
+    display: flex;
+    gap: 14px;
+  }
+  .post-pfp {
+    aspect-ratio: 1/1;
+    width: 42px;
+    border-radius: 50%;
+    background-position: cover;
+  }
+  .post-author-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    .upper {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .post-author {
+      font-weight: bold;
+    }
+    .date,
+    .post-author-name {
+      color: #969696;
+      font-size: 0.8em;
+    }
+  }
+  .post-tags {
+    color: #c6a4ff;
+    font-size: 0.9em;
+    display: flex;
+    flex-direction: row;
+    gap: 14px;
+  }
+  .post-image {
+    display: none;
+    &[src]:not([src="null"]) {
+      display: block;
+      aspect-ratio: 16/9;
+      width: 100%;
+      background-position: center;
+      object-fit: cover;
+      border-radius: 14px;
+    }
+  }
+
+  .post-stats-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+    .icon {
+      aspect-ratio: 1/1;
+      height: 21px;
+    }
+  }
+}
+.filter-container {
+  display: flex;
+  position: fixed;
+  right: 251px;
+  align-items: center;
+  font-weight: bold;
+  background: rgba(0, 0, 0, 0.49);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(6.6px);
+  padding: 10px 14px;
+  border: 1px solid #3b3b3b;
+  border-radius: 14px;
+  /* background-color: red; */
+  cursor: pointer;
+  &:hover {
+    background-color: #1e1e1e;
+  }
+}
