@@ -219,7 +219,7 @@ app.get(
               username: "${req.user.username}",
               token: "${req.user.token}"
             }));
-            window.location.replace("/index.html");
+            window.location.replace("https://technigram.vercel.app");
           </script>
         </body>
       </html>
@@ -374,6 +374,10 @@ async function fetchPostDetails(post_id) {
     await client.end();
   }
 }
+
+app.get("/", (req, res) => {
+  res.redirect("https://technigram.vercel.app");
+});
 
 app.get("/posts/count", async (req, res) => {
   const client = new Client({
@@ -760,5 +764,5 @@ app.get("/healthcheck", (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`Server is running at`, process.env.SERVER_ADRESS);
+  console.log(`Server is running at`, process.env.SERVER_ADDRESS);
 });
