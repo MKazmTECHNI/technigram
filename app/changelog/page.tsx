@@ -7,7 +7,6 @@ import Header from "@/components/header/header";
 export default function Home() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const changelog_arr = [
-    // walne tu pewnie display grida bo spodobał mi się pomysł
     [
       "Username Change",
       "Now you can go into /profile, click your username and change it",
@@ -40,17 +39,12 @@ export default function Home() {
           </button>
         </div>
         {changelog_arr.map((post, index) => (
-          <details key={post}>
-            <summary>{changelog_arr[index][0]}</summary>
+          <details key={index}>
+            <summary>{post[0]}</summary>
             <div className="details-container">
-              <p>{changelog_arr[index][1]}</p>
+              <p>{post[1]}</p>
             </div>
           </details>
-          // <div key={index} className="change">
-          //     <p>{post[0]}</p>
-          //     <p>Status: {post[1]}</p>
-          //     <p>{post[2]}</p>
-          //   </div>
         ))}
       </div>
     </div>

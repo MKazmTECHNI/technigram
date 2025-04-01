@@ -49,7 +49,7 @@ export default function Home() {
             const post = await response.json();
             setPosts((prevPosts) => [...prevPosts, post]);
           } catch (postError) {
-            console.warn(postError.message);
+            console.warn(postError);
           }
         }
       } catch (err: any) {
