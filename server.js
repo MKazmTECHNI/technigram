@@ -210,20 +210,11 @@ app.get(
   passport.authenticate("google", { failureRedirect: "/login" }),
   (req, res) => {
     req.session.token = req.user.token; // Set the token in session
-    res.send(`
-      <html>
-        <body>
-          <script>
-            localStorage.setItem("currentUser", JSON.stringify({
-              id: "${req.user.id}",
-              username: "${req.user.username}",
-              token: "${req.user.token}"
-            }));
-            window.location.replace("https://technigram.vercel.app");
-          </script>
-        </body>
-      </html>
-    `);
+    res.redirect(
+      `https://technigram.vercel.app/auth/callback?token=${req.user.token}&id=${
+        req.user.id
+      }&username=${encodeURIComponent(req.user.username)}`
+    );
   }
 );
 
