@@ -53,7 +53,7 @@ export default function Home() {
 
       console.log("Added new post:", await response.json());
 
-      window.location.replace("https://localhost:3000");
+      window.location.replace("/");
     } catch (error) {
       console.error("Error adding post:", error);
       setError(`Failed to add post: ${error}`);
