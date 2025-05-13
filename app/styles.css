@@ -19,7 +19,7 @@
     gap: 14px;
   }
   .post-pfp {
-    aspect-ratio: 1/1;
+    height: 42px;
     width: 42px;
     border-radius: 50%;
     background-position: cover;
@@ -90,5 +90,16 @@
   cursor: pointer;
   &:hover {
     background-color: #1e1e1e;
+  }
+}
+@media (max-width: 768px) {
+  .posts {
+    padding: 14px;
+  }
+  .post {
+    width: 100%;
+  }
+  .filter-container {
+    display: none;
   }
 }

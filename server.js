@@ -2,7 +2,8 @@ const express = require("express");
 const rateLimit = require("express-rate-limit");
 const path = require("path");
 const cors = require("cors");
-const { Client } = require("pg");
+// const { Client } = require("pg");
+const sqlite3 = require("sqlite3").verbose();
 const session = require("express-session");
 const passport = require("passport");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
@@ -24,19 +25,32 @@ app.use(
     saveUninitialized: true,
   })
 );
-
-const emailPattern = /^u\d{3}_[a-z]{6}_[a-z]{3}@technischools\.com$/;
-
 // Initialize Passport.js
 app.use(passport.initialize());
 app.use(passport.session());
 
-// PostgreSQL configuration
-const connectionString = process.env.DATABASE_CONNECTION_STRING;
+const db = new sqlite3.Database("technigram.db");
 
-const sslConfig = {
-  rejectUnauthorized: false,
-};
+const emailPattern = /^u\d{3}_[a-z]{6}_[a-z]{3}@technischools\.com$/;
+
+function exec_sql(sql, params = []) {
+  return new Promise((resolve, reject) => {
+    db.run(sql, params, function (err) {
+      if (err) reject(err);
+      else resolve(this);
+    });
+  });
+}
+
+// Retrieve SQL query result
+function return_sql(sql, params = []) {
+  return new Promise((resolve, reject) => {
+    db.all(sql, params, (err, rows) => {
+      if (err) reject(err);
+      else resolve(rows);
+    });
+  });
+}
 
 // Rate Limiting
 const postCommentLimiter = rateLimit({
@@ -87,86 +101,55 @@ passport.use(
         return done(null, false, { message: "Invalid email format" });
       }
 
-      const client = new Client({
-        connectionString: connectionString,
-        ssl: sslConfig,
-      });
+      const result = await return_sql(
+        `SELECT id, username, token FROM users WHERE email = ${email}`
+      );
 
-      try {
-        await client.connect();
+      let user;
+      let token;
 
-        const selectUserQuery = {
-          text: "SELECT id, username, token FROM users WHERE email = $1",
-          values: [email],
-        };
+      // Convert image URL to Base64
+      const imageUrl = profile.photos[0].value;
+      const base64Image = await fetch(imageUrl)
+        .then((response) => {
+          if (!response.ok) throw new Error("Failed to fetch image");
+          return response.arrayBuffer();
+        })
+        .then((arrayBuffer) => Buffer.from(arrayBuffer).toString("base64"))
+        .catch((error) => {
+          console.error("Error fetching image:", error);
+          return null; // Or handle this as necessary
+        });
 
-        const result = await client.query(selectUserQuery);
+      if (result.length) {
+        // If token exists, use the existing token, otherwise generate a new one
+        token = result[0].token ? result[0].token : generateToken(user[0]);
 
-        let user;
-        let token;
-
-        // Convert image URL to Base64
-        const imageUrl = profile.photos[0].value;
-        const base64Image = await fetch(imageUrl)
-          .then((response) => {
-            if (!response.ok) throw new Error("Failed to fetch image");
-            return response.arrayBuffer();
-          })
-          .then((arrayBuffer) => Buffer.from(arrayBuffer).toString("base64"))
-          .catch((error) => {
-            console.error("Error fetching image:", error);
-            return null; // Or handle this as necessary
+        // If no token existed, update the user record with the newly generated token
+        if (!result[0].token) {
+          exec_sql(
+            `UPDATE users SET token = ${token} WHERE id = ${result[0].id}`
+          ).catch((err) => {
+            console.error("Error updating token:", err);
           });
-
-        if (result.rows.length > 0) {
-          user = result.rows[0];
-
-          // If token exists, use the existing token, otherwise generate a new one
-          token = user.token ? user.token : generateToken(user);
-
-          // If no token existed, update the user record with the newly generated token
-          if (!user.token) {
-            const updateTokenQuery = {
-              text: "UPDATE users SET token = $1 WHERE id = $2",
-              values: [token, user.id],
-            };
-            await client.query(updateTokenQuery);
-          }
-        } else {
-          // First-time registration, insert the new user and generate a token
-          const insertUserQuery = {
-            text: `
-              INSERT INTO users (username, email, profile_picture, true_name)
-              VALUES ($1, $2, $3, $4)
-              RETURNING id, username, email, true_name
-            `,
-            values: [
-              profile.displayName,
-              email,
-              base64Image,
-              profile.displayName,
-            ],
-          };
-
-          const insertResult = await client.query(insertUserQuery);
-          user = insertResult.rows[0];
-          token = generateToken(user);
-
-          const updateTokenQuery = {
-            text: "UPDATE users SET token = $1 WHERE id = $2",
-            values: [token, user.id],
-          };
-          await client.query(updateTokenQuery);
         }
+      } else {
+        // First-time registration, insert the new user and generate a token
+        returned_values = return_sql(
+          `INSERT INTO users (username, email, profile_picture, true_name) 
+          VALUES (${profile.displayName}, '${email}', '${base64Image}', '${profile.displayName}
+          RETURNING id, username, email, true_name')`
+        );
 
-        // Store the token in session and return user with token
-        return done(null, { ...user, token });
-      } catch (err) {
-        console.error("Error handling Google login:", err);
-        return done(err, null);
-      } finally {
-        await client.end();
+        token = generateToken(returned_values[0]);
+
+        exec_sql(
+          `UPDATE users SET token = ${token} WHERE id = ${returned_values[0].id}`
+        );
       }
+
+      // Store the token in session and return user with token
+      return done(null, { ...returned_values[0], token });
     }
   )
 );
@@ -174,29 +157,22 @@ passport.use(
 passport.serializeUser((user, done) => {
   done(null, { id: user.id, username: user.username, token: user.token });
 });
-
 passport.deserializeUser(async (user, done) => {
-  const client = new Client({
-    connectionString: connectionString,
-    ssl: sslConfig,
-  });
-
   try {
-    await client.connect();
+    const result = await return_sql(
+      `SELECT id, username, email, profile_picture, true_name FROM users WHERE id = ?`,
+      [user.id]
+    );
 
-    const selectUserQuery = {
-      text: "SELECT id, username FROM users WHERE id = $1",
-      values: [user.id],
-    };
+    if (result.length === 0) {
+      return done(new Error("User not found"), null);
+    }
 
-    const result = await client.query(selectUserQuery);
-    const dbUser = result.rows[0];
-
-    done(null, { dbUser, token: user.token });
-  } catch (err) {
-    done(err, null);
-  } finally {
-    await client.end();
+    const dbUser = result[0];
+    done(null, { ...dbUser, token: user.token });
+  } catch (error) {
+    console.error("Error deserializing user:", error);
+    done(error, null);
   }
 });
 
@@ -210,135 +186,100 @@ app.get(
   passport.authenticate("google", { failureRedirect: "/login" }),
   (req, res) => {
     req.session.token = req.user.token; // Set the token in session
-    res.redirect(
-      `https://technigram.vercel.app/auth/callback?token=${req.user.token}&id=${
-        req.user.id
-      }&username=${encodeURIComponent(req.user.username)}`
-    );
+    res.send(`
+      <html>
+        <body>
+          <script>
+            localStorage.setItem("currentUser", JSON.stringify({
+              id: "${req.user.id}",
+              username: "${req.user.username}",
+              token: "${req.user.token}"
+            }));
+            window.location.replace("/index.html");
+          </script>
+        </body>
+      </html>
+    `);
   }
 );
-
-const checkToken = async (localToken, userId, connectionString, sslConfig) => {
-  const client = new Client({
-    connectionString: connectionString,
-    ssl: sslConfig,
-  });
-
+const checkToken = async (localToken, userId) => {
   try {
-    await client.connect();
-
-    const queryResult = await client.query(
-      "SELECT token FROM users WHERE id = $1",
-      [userId]
-    );
-    const dbToken = queryResult.rows[0]?.token;
+    const results = await return_sql("SELECT token FROM users WHERE id = ?", [
+      userId,
+    ]);
+    const dbToken = results[0]?.token;
     if (dbToken === localToken) {
       return { success: true, message: "Token matches" };
     } else {
       return { success: false, message: "Token does not match" };
     }
-  } catch (error) {
-    console.error("Error querying database:", error);
+  } catch (err) {
+    console.error("Error querying database:", err);
     return { success: false, message: "Internal server error" };
-  } finally {
-    await client.end();
   }
 };
 
-async function fetchProfilePicture(user_id) {
-  const client = new Client({
-    connectionString: connectionString,
-    ssl: sslConfig,
-  });
-
+const fetchProfilePicture = async (userId) => {
   try {
-    await client.connect();
-
-    const selectUserQuery = {
-      text: `
-        SELECT profile_picture FROM users
-        WHERE id = $1
-      `,
-      values: [user_id],
-    };
-
-    const userResult = await client.query(selectUserQuery);
-    if (userResult.rows.length === 0) {
+    const results = await return_sql(
+      "SELECT profile_picture FROM users WHERE id = ?",
+      [userId]
+    );
+    if (results.length === 0) {
       throw new Error("User not found");
     }
-    const { profile_picture } = userResult.rows[0];
-
-    return {
-      userProfilePicture: profile_picture || "/default-profile.png", // Provide a default if not set
-    };
+    const profilePicture = results[0].profile_picture || "/default-profile.png";
+    return { userProfilePicture: profilePicture };
   } catch (err) {
-    console.error("Error fetching data from PostgreSQL:", err);
+    console.error("Error fetching profile picture:", err);
     throw err;
-  } finally {
-    await client.end();
   }
-}
+};
 
-async function fetchPostDetails(post_id) {
-  const client = new Client({
-    connectionString: connectionString,
-    ssl: sslConfig,
-  });
-
+const fetchPostDetails = async (postId) => {
   try {
-    await client.connect();
+    const postQuery = `
+      SELECT content, creator_id, created_at, likes
+      FROM posts
+      WHERE post_id = ?`;
+    const postResults = await return_sql(postQuery, [postId]);
 
-    const selectPostQuery = {
-      text: `
-        SELECT content, creator_id, created_at, likes FROM posts
-        WHERE post_id = $1
-      `,
-      values: [post_id],
-    };
-
-    const postResult = await client.query(selectPostQuery);
-    if (postResult.rows.length === 0) {
+    if (postResults.length === 0) {
       throw new Error("Post not found");
     }
-    const post = postResult.rows[0];
+    const post = postResults[0];
 
-    const selectUserQuery = {
-      text: `
-        SELECT username, profile_picture, true_name FROM users
-        WHERE id = $1
-      `,
-      values: [post.creator_id],
-    };
+    const userQuery = `
+      SELECT username, profile_picture, true_name
+      FROM users
+      WHERE id = ?`;
+    const userResults = await return_sql(userQuery, [post.creator_id]);
 
-    const userResult = await client.query(selectUserQuery);
-    if (userResult.rows.length === 0) {
+    if (userResults.length === 0) {
       throw new Error("User not found");
     }
-    const { username, profile_picture, true_name } = userResult.rows[0];
+    const { username, profile_picture, true_name } = userResults[0];
 
-    const selectCommentsQuery = {
-      text: `
-        SELECT comment_creator_id, comment_content FROM comments
-        WHERE post_id = $1
-      `,
-      values: [post_id],
-    };
+    const commentsQuery = `
+      SELECT comment_creator_id, comment_content
+      FROM comments
+      WHERE post_id = ?`;
+    const commentResults = await return_sql(commentsQuery, [postId]);
 
-    const commentsResult = await client.query(selectCommentsQuery);
     const comments = await Promise.all(
-      commentsResult.rows.map(async (comment) => {
-        const selectCommentUserQuery = {
-          text: `
-          SELECT username, profile_picture FROM users
-          WHERE id = $1
-        `,
-          values: [comment.comment_creator_id],
-        };
-        const commentUserResult = await client.query(selectCommentUserQuery);
+      commentResults.map(async (comment) => {
+        const commentUserQuery = `
+          SELECT username, profile_picture
+          FROM users
+          WHERE id = ?`;
+        const commentUserResults = await return_sql(commentUserQuery, [
+          comment.comment_creator_id,
+        ]);
+
         const {
           username: commentUsername,
           profile_picture: commentProfilePicture,
-        } = commentUserResult.rows[0];
+        } = commentUserResults[0];
 
         return {
           ...comment,
@@ -356,49 +297,32 @@ async function fetchPostDetails(post_id) {
       creatorProfilePicture: profile_picture,
       likes: post.likes,
       date: post.created_at,
-      comments: comments,
+      comments,
     };
-  } catch (err) {
-    console.error("Error fetching data from PostgreSQL:", err);
-    throw err;
-  } finally {
-    await client.end();
+  } catch (error) {
+    console.error("Error fetching post details:", error);
+    throw error;
   }
-}
-
-app.get("/", (req, res) => {
-  res.redirect("https://technigram.vercel.app");
-});
+};
 
 app.get("/posts/count", async (req, res) => {
-  const client = new Client({
-    connectionString: connectionString,
-    ssl: sslConfig,
-  });
-
   try {
-    await client.connect();
-
-    const countQuery = "SELECT COUNT(*) FROM posts";
-    const result = await client.query(countQuery);
-    const numberOfPosts = parseInt(result.rows[0].count);
-
+    const results = await return_sql("SELECT COUNT(*) AS count FROM posts");
+    const numberOfPosts = results[0].count;
     res.json({ numberOfPosts });
   } catch (err) {
     console.error("Error fetching post count:", err);
     res.status(500).json({ error: "Failed to fetch post count" });
-  } finally {
-    await client.end();
   }
 });
 
 app.get("/profilePicture/:user_id", async (req, res) => {
-  const user_id = req.params.user_id;
-
   try {
-    const profilePicture = await fetchProfilePicture(user_id);
+    const userId = req.params.user_id;
+    const profilePicture = await fetchProfilePicture(userId);
     res.json(profilePicture);
   } catch (err) {
+    console.error("Error:", err);
     res.status(500).json({ error: "Failed to fetch profile picture" });
   }
 });
@@ -406,54 +330,37 @@ app.get("/profilePicture/:user_id", async (req, res) => {
 app.post("/changeProfile", async (req, res) => {
   const authHeader = req.headers.authorization;
   const localToken = authHeader && authHeader.split(" ")[1];
-  const { userId, profilePicture } = req.body;
+  const { username, email } = req.body;
 
   if (!localToken) {
-    return res
-      .status(401)
-      .json({ success: false, message: "Token not provided" });
+    return res.status(401).json({ error: "Token missing" });
   }
-
-  const result = await checkToken(
-    localToken,
-    userId,
-    connectionString,
-    sslConfig
-  );
-
-  if (!result.success) {
-    return res
-      .status(result.message === "Token does not match" ? 401 : 500)
-      .json(result);
-  }
-
-  const client = new Client({
-    connectionString: connectionString,
-    ssl: sslConfig,
-  });
 
   try {
-    await client.connect();
+    const tokenResult = await return_sql(
+      `SELECT id FROM users WHERE token = ?`,
+      [localToken]
+    );
 
-    const updateProfilePictureQuery = {
-      text: `
-        UPDATE users
-        SET profile_picture = $1
-        WHERE id = $2
-      `,
-      values: [profilePicture, userId],
-    };
+    if (tokenResult.length === 0) {
+      return res.status(403).json({ error: "Invalid token" });
+    }
 
-    await client.query(updateProfilePictureQuery);
+    const userId = tokenResult[0].id;
 
-    res.status(200).json({ message: "Profile picture updated successfully" });
+    await exec_sql(`UPDATE users SET username = ?, email = ? WHERE id = ?`, [
+      username,
+      email,
+      userId,
+    ]);
+
+    res.json({ success: true, message: "Profile updated successfully" });
   } catch (err) {
-    console.error("Error updating profile picture:", err);
-    res.status(500).json({ error: "Failed to update profile picture" });
-  } finally {
-    await client.end();
+    console.error("Error updating profile:", err);
+    res.status(500).json({ error: "Failed to update profile information" });
   }
 });
+
 app.post("/changeUsername", async (req, res) => {
   const authHeader = req.headers.authorization;
   const localToken = authHeader && authHeader.split(" ")[1];
@@ -465,12 +372,7 @@ app.post("/changeUsername", async (req, res) => {
       .json({ success: false, message: "Token not provided" });
   }
 
-  const result = await checkToken(
-    localToken,
-    userId,
-    connectionString,
-    sslConfig
-  );
+  const result = await checkToken(localToken, userId);
 
   if (!result.success) {
     return res
@@ -489,31 +391,15 @@ app.post("/changeUsername", async (req, res) => {
       .json({ success: false, message: "Username is too short. Min: 3" });
   }
 
-  const client = new Client({
-    connectionString: connectionString,
-    ssl: sslConfig,
-  });
-
   try {
-    await client.connect();
-
-    const updateUsernameQuery = {
-      text: `
-        UPDATE users
-        SET username = $1
-        WHERE id = $2
-      `,
-      values: [username, userId],
-    };
-
-    await client.query(updateUsernameQuery);
-
+    await exec_sql(`UPDATE users SET username = ? WHERE id = ?`, [
+      username,
+      userId,
+    ]);
     res.status(200).json({ message: "Username updated successfully" });
   } catch (err) {
     console.error("Error updating username:", err);
     res.status(500).json({ error: "Failed to update username" });
-  } finally {
-    await client.end();
   }
 });
 
@@ -524,7 +410,7 @@ app.get("/posts/:post_id", async (req, res) => {
     const postDetails = await fetchPostDetails(post_id);
     res.json(postDetails);
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch post details" });
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -541,13 +427,7 @@ app.post("/posts/:post_id/comments", postCommentLimiter, async (req, res) => {
       .json({ success: false, message: "Token not provided" });
   }
 
-  // Validate the token using comment_creator_id instead of user_id
-  const result = await checkToken(
-    localToken,
-    comment_creator_id,
-    connectionString,
-    sslConfig
-  );
+  const result = await checkToken(localToken, comment_creator_id);
   if (!result.success) {
     return res
       .status(result.message === "Token does not match" ? 401 : 500)
@@ -568,46 +448,31 @@ app.post("/posts/:post_id/comments", postCommentLimiter, async (req, res) => {
 
   const sanitizedCommentContent = xss(comment_content);
 
-  const client = new Client({
-    connectionString: connectionString,
-    ssl: sslConfig,
-  });
-
   try {
-    await client.connect();
+    const insertResult = await exec_sql(
+      `INSERT INTO comments (post_id, comment_creator_id, comment_content) VALUES (?, ?, ?)`,
+      [post_id, comment_creator_id, sanitizedCommentContent]
+    );
 
-    const insertCommentQuery = {
-      text: `
-        INSERT INTO comments (post_id, comment_creator_id, comment_content)
-        VALUES ($1, $2, $3)
-        RETURNING comment_id, comment_creator_id, comment_content
-      `,
-      values: [post_id, comment_creator_id, sanitizedCommentContent],
-    };
+    const userResult = await return_sql(
+      `SELECT username FROM users WHERE id = ?`,
+      [comment_creator_id]
+    );
 
-    const insertResult = await client.query(insertCommentQuery);
-    const newComment = insertResult.rows[0];
+    if (userResult.length === 0) {
+      return res.status(500).json({ error: "Failed to fetch user info" });
+    }
 
-    const selectCommentUserQuery = {
-      text: `
-        SELECT username FROM users
-        WHERE id = $1
-      `,
-      values: [newComment.comment_creator_id],
-    };
-
-    const commentUserResult = await client.query(selectCommentUserQuery);
-    const commentUsername = commentUserResult.rows[0].username;
-
+    const { username } = userResult[0];
     res.json({
-      ...newComment,
-      username: commentUsername,
+      comment_id: insertResult.lastID,
+      comment_creator_id,
+      comment_content: sanitizedCommentContent,
+      username,
     });
   } catch (err) {
     console.error("Error adding comment:", err);
     res.status(500).json({ error: "Failed to add comment" });
-  } finally {
-    await client.end();
   }
 });
 
@@ -615,34 +480,19 @@ app.post("/posts/:post_id/comments", postCommentLimiter, async (req, res) => {
 app.get("/users/:user_id", async (req, res) => {
   const user_id = req.params.user_id;
 
-  const client = new Client({
-    connectionString: connectionString,
-    ssl: sslConfig,
-  });
-
   try {
-    await client.connect();
+    const result = await return_sql(`SELECT username FROM users WHERE id = ?`, [
+      user_id,
+    ]);
 
-    const selectUserQuery = {
-      text: `
-        SELECT username FROM users
-        WHERE id = $1
-      `,
-      values: [user_id],
-    };
-
-    const userResult = await client.query(selectUserQuery);
-    if (userResult.rows.length === 0) {
-      throw new Error("User not found");
+    if (result.length === 0) {
+      return res.status(404).json({ error: "User not found" });
     }
 
-    const user = userResult.rows[0];
-    res.json(user);
-  } catch (error) {
-    console.error("Error fetching user details:", error);
+    res.json(result[0]);
+  } catch (err) {
+    console.error("Error fetching user details:", err);
     res.status(500).json({ error: "Failed to fetch user details" });
-  } finally {
-    await client.end();
   }
 });
 
@@ -658,13 +508,7 @@ app.post("/posts", postCommentLimiter, async (req, res) => {
       .json({ success: false, message: "Token not provided" });
   }
 
-  // Use creator_id for token validation
-  const result = await checkToken(
-    localToken,
-    creator_id,
-    connectionString,
-    sslConfig
-  );
+  const result = await checkToken(localToken, creator_id);
 
   if (!result.success) {
     return res
@@ -684,66 +528,22 @@ app.post("/posts", postCommentLimiter, async (req, res) => {
       .json({ error: "Content cannot exceed 1500 characters" });
   }
 
-  const client = new Client({
-    connectionString: connectionString,
-    ssl: sslConfig,
-  });
-
   try {
-    await client.connect();
+    const insertResult = await exec_sql(
+      `INSERT INTO posts (creator_id, content) VALUES (?, ?)`,
+      [creator_id, content]
+    );
 
-    // Additional logic (such as user activity check) goes here...
-
-    const insertPostQuery = {
-      text: `
-        INSERT INTO posts (creator_id, content)
-        VALUES ($1, $2)
-        RETURNING post_id, creator_id, content, likes, created_at
-      `,
-      values: [creator_id, content],
-    };
-
-    const insertResult = await client.query(insertPostQuery);
-    const newPost = insertResult.rows[0];
-
-    res.status(201).json(newPost);
+    res.status(201).json({
+      post_id: insertResult.lastID,
+      creator_id,
+      content,
+      likes: 0,
+      created_at: new Date(),
+    });
   } catch (err) {
     console.error("Error adding post:", err);
     res.status(500).json({ error: "Failed to add post" });
-  } finally {
-    await client.end();
-  }
-});
-
-app.get("/reset-seq", async (req, res) => {
-  const client = new Client({
-    connectionString: connectionString,
-    ssl: sslConfig,
-  });
-
-  try {
-    await client.connect();
-
-    const resetCommentSeqQuery = `
-      SELECT setval('public.comments_comment_id_seq', (SELECT MAX(comment_id) FROM comments));
-    `;
-    const resetUserSeqQuery = `
-      SELECT setval('public.users_id_seq', (SELECT MAX(id) FROM users));
-    `;
-    const resetPostSeqQuery = `
-      SELECT setval('public.posts_post_id_seq', (SELECT MAX(post_id) FROM posts));
-    `;
-
-    await client.query(resetCommentSeqQuery);
-    await client.query(resetUserSeqQuery);
-    await client.query(resetPostSeqQuery);
-
-    res.status(200).json({ message: "Sequences reset successfully" });
-  } catch (err) {
-    console.error("Error resetting sequences:", err);
-    res.status(500).json({ error: "Failed to reset sequences" });
-  } finally {
-    await client.end();
   }
 });
 

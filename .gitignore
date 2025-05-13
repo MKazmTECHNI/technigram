@@ -48,5 +48,8 @@ help.txt
 # so no need to commit it
 
 execute_sql.js
+.db
+*.db
+
 
 /node_modules/

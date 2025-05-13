@@ -4,6 +4,7 @@ import Link from "next/link";
 export default function Header() {
   return (
     <header>
+      <div className="hamburger-menu">III</div>
       <nav>
         <Link href={"/"}>Home</Link>
         <Link href={"/profile"}>Profile</Link>

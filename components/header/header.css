@@ -50,3 +50,15 @@ nav {
     }
   }
 }
+.hamburger-menu {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  nav {
+    display: none;
+  }
+  .hamburger-menu {
+    display: block;
+  }
+}
