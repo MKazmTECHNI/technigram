@@ -16,7 +16,8 @@ async function authenticateToken(req, res, next) {
     if (!result.length) {
       return res.status(403).json({ error: "Invalid token" });
     }
-    req.user = result[0]; // Attach user info to the request
+    // Ensure id is a number
+    req.user = { ...result[0], id: Number(result[0].id) };
     next();
   } catch (err) {
     res.status(500).json({ error: "Server error during authentication" });

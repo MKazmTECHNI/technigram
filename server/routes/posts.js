@@ -4,7 +4,11 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 const { exec_sql, return_sql } = require("../utils/dbUtils");
-const { postCommentLimiter } = require("../middleware/rateLimiter");
+const {
+  postCommentLimiter,
+  postLikeLimiter,
+  commentLikeLimiter,
+} = require("../middleware/rateLimiter");
 const { authenticateToken } = require("../middleware/auth");
 
 const router = express.Router();
@@ -28,12 +32,27 @@ const upload = multer({
   fileFilter: (req, file, cb) => {
     const allowedTypes = ["image/jpeg", "image/png"];
     if (!allowedTypes.includes(file.mimetype)) {
-      return cb(new Error("Only JPEG and PNG files are allowed"));
+      // Do not log error to console, just pass error to cb
+      const err = new Error("Only JPEG and PNG files are allowed");
+      err.code = "LIMIT_FILE_TYPE";
+      return cb(err);
     }
     cb(null, true);
   },
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
 });
+
+// Helper: wrap async route handlers to catch Multer errors
+function multerErrorHandler(handler) {
+  return function (req, res, next) {
+    handler(req, res, next).catch((err) => {
+      if (err && err.message === "Only JPEG and PNG files are allowed") {
+        return res.status(400).json({ error: err.message });
+      }
+      next(err);
+    });
+  };
+}
 
 // Get post count
 router.get("/count", async (req, res) => {
@@ -50,7 +69,7 @@ router.get("/:post_id", async (req, res) => {
   const postId = req.params.post_id;
   try {
     const postQuery = `
-      SELECT content, creator_id, created_at, likes, image
+      SELECT post_id, content, creator_id, created_at, likes, image
       FROM posts
       WHERE post_id = ?`;
     const postResults = await return_sql(postQuery, [postId]);
@@ -72,7 +91,7 @@ router.get("/:post_id", async (req, res) => {
         : "/images/profiles/default-profile.png";
 
     const commentsQuery = `
-      SELECT comment_creator_id, comment_content
+      SELECT comment_id, comment_creator_id, comment_content, likes
       FROM comments
       WHERE post_id = ?`;
     const commentResults = await return_sql(commentsQuery, [postId]);
@@ -90,7 +109,9 @@ router.get("/:post_id", async (req, res) => {
           profile_picture: commentProfilePicture,
         } = commentUserResults[0];
         return {
-          ...comment,
+          comment_id: comment.comment_id,
+          comment_content: comment.comment_content,
+          likes: comment.likes,
           username: commentUsername,
           profile_picture: commentProfilePicture,
         };
@@ -98,6 +119,7 @@ router.get("/:post_id", async (req, res) => {
     );
 
     res.json({
+      post_id: post.post_id,
       content: post.content,
       creator_id: post.creator_id,
       creatorUsername: username,
@@ -122,6 +144,14 @@ router.post(
     const post_id = req.params.post_id;
     const { comment_content } = req.body;
     const comment_creator_id = req.user.id;
+
+    // Debug log
+    if (!comment_creator_id) {
+      console.error("No user id found in req.user:", req.user);
+      return res
+        .status(401)
+        .json({ error: "User authentication failed (no id)" });
+    }
 
     if (!comment_content) {
       return res.status(400).json({ error: "Comment content is required" });
@@ -155,7 +185,23 @@ router.post(
   "/",
   postCommentLimiter,
   authenticateToken,
-  upload.single("image"),
+  (req, res, next) => {
+    upload.single("image")(req, res, function (err) {
+      if (
+        err &&
+        (err.message === "Only JPEG and PNG files are allowed" ||
+          err.code === "LIMIT_FILE_TYPE")
+      ) {
+        // Do not log to console, just respond with user-friendly message
+        return res.json({ error: "Only PNG and JPEG are allowed!" });
+      }
+      if (err) {
+        // Do not log to console, just respond with generic error
+        return res.json({ error: "File upload error" });
+      }
+      next();
+    });
+  },
   async (req, res) => {
     // Support both JSON and multipart/form-data
     let content;
@@ -198,6 +244,97 @@ router.post(
       });
     } catch (err) {
       res.status(500).json({ error: "Failed to add post" });
+    }
+  }
+);
+
+// Like/unlike a post
+router.post(
+  "/:post_id/like",
+  postLikeLimiter,
+  authenticateToken,
+  async (req, res) => {
+    const post_id = req.params.post_id;
+    const user_id = req.user.id;
+    try {
+      // Check if already liked
+      const existing = await return_sql(
+        "SELECT id FROM post_likes WHERE post_id = ? AND user_id = ?",
+        [post_id, user_id]
+      );
+      if (existing.length) {
+        // Unlike: remove like and decrement
+        await exec_sql(
+          "DELETE FROM post_likes WHERE post_id = ? AND user_id = ?",
+          [post_id, user_id]
+        );
+        await exec_sql(
+          "UPDATE posts SET likes = likes - 1 WHERE post_id = ? AND likes > 0",
+          [post_id]
+        );
+      } else {
+        // Like: add like and increment
+        await exec_sql(
+          "INSERT INTO post_likes (post_id, user_id) VALUES (?, ?)",
+          [post_id, user_id]
+        );
+        await exec_sql("UPDATE posts SET likes = likes + 1 WHERE post_id = ?", [
+          post_id,
+        ]);
+      }
+      const [{ likes }] = await return_sql(
+        "SELECT likes FROM posts WHERE post_id = ?",
+        [post_id]
+      );
+      res.json({ likes });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to like/unlike post" });
+    }
+  }
+);
+
+// Like/unlike a comment
+router.post(
+  "/comments/:comment_id/like",
+  commentLikeLimiter,
+  authenticateToken,
+  async (req, res) => {
+    const comment_id = req.params.comment_id;
+    const user_id = req.user.id;
+    try {
+      // Check if already liked
+      const existing = await return_sql(
+        "SELECT id FROM comment_likes WHERE comment_id = ? AND user_id = ?",
+        [comment_id, user_id]
+      );
+      if (existing.length) {
+        // Unlike: remove like and decrement
+        await exec_sql(
+          "DELETE FROM comment_likes WHERE comment_id = ? AND user_id = ?",
+          [comment_id, user_id]
+        );
+        await exec_sql(
+          "UPDATE comments SET likes = likes - 1 WHERE comment_id = ? AND likes > 0",
+          [comment_id]
+        );
+      } else {
+        // Like: add like and increment
+        await exec_sql(
+          "INSERT INTO comment_likes (comment_id, user_id) VALUES (?, ?)",
+          [comment_id, user_id]
+        );
+        await exec_sql(
+          "UPDATE comments SET likes = likes + 1 WHERE comment_id = ?",
+          [comment_id]
+        );
+      }
+      const [{ likes }] = await return_sql(
+        "SELECT likes FROM comments WHERE comment_id = ?",
+        [comment_id]
+      );
+      res.json({ likes });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to like/unlike comment" });
     }
   }
 );

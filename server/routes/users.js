@@ -20,6 +20,45 @@ router.get("/:user_id", async (req, res) => {
   }
 });
 
+// GET USER PROFILE BY USERNAME
+router.get("/by-username/:username", async (req, res) => {
+  const username = req.params.username;
+  try {
+    const result = await return_sql(
+      `SELECT username, true_name, profile_picture FROM users WHERE username = ?`,
+      [username]
+    );
+    if (result.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    res.json(result[0]);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch user details" });
+  }
+});
+
+// GET POSTS BY USERNAME
+router.get("/:username/posts", async (req, res) => {
+  const username = req.params.username;
+  try {
+    const userResult = await return_sql(
+      `SELECT id FROM users WHERE username = ?`,
+      [username]
+    );
+    if (!userResult.length) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    const userId = userResult[0].id;
+    const posts = await return_sql(
+      `SELECT post_id, content, image, created_at as date, likes FROM posts WHERE creator_id = ? ORDER BY created_at DESC`,
+      [userId]
+    );
+    res.json(posts);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch user posts" });
+  }
+});
+
 // Change username
 router.post("/changeUsername", authenticateToken, async (req, res) => {
   const { username } = req.body;

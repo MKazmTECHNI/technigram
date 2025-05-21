@@ -59,15 +59,14 @@ export default function Home() {
         });
       }
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          `HTTP error! Status: ${response.status} - ${errorData.message}, ${response.statusText}`
-        );
+      const data = await response.json();
+      if (!response.ok || data.error) {
+        setError(data.error || data.message || "Failed to add post");
+        setPostAdded(false);
+        return;
       }
 
-      console.log("Added new post:", await response.json());
-      window.location.replace("/");
+      // window.location.replace("/");
     } catch (error) {
       console.error("Error adding post:", error);
       setError(`Failed to add post: ${error}`);

@@ -11,10 +11,14 @@
   border: 1px solid #595959;
   width: 700px;
   border-radius: 14px;
-  padding: 14px;
+  padding: 16px 19px;
   gap: 7px;
 
   div {
+    display: flex;
+    gap: 14px;
+  }
+  a {
     display: flex;
     gap: 14px;
   }
@@ -66,10 +70,20 @@
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 14px;
+    gap: 21px;
     .icon {
       aspect-ratio: 1/1;
       height: 21px;
+    }
+    .like-container,
+    .comments-stats-container {
+      display: flex;
+      gap: 7px;
+      justify-content: center;
+      align-items: center;
+      * {
+        margin: 0;
+      }
     }
   }
 }
@@ -95,7 +109,179 @@
 
 /* Modal for full image preview */
 .image-modal {
+  img {
+    &:hover {
+      scale: 1.01;
+    }
+  }
   /* Inline styles are used in TSX for simplicity, but you can move them here if you prefer */
+}
+
+.post-author-link {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.post-image-clickable {
+  cursor: pointer;
+}
+
+.heart-icon.icon.post-like-icon.clickable {
+  cursor: pointer;
+}
+.heart-icon.icon.post-like-icon.not-allowed {
+  cursor: not-allowed;
+}
+.heart-icon.icon.post-like-icon.loading {
+  opacity: 0.5;
+}
+
+.comment-icon.icon.post-comment-icon.clickable {
+  cursor: pointer;
+}
+
+.post-comment-container {
+  background: #232323;
+  border-radius: 10px;
+  margin: 10px 0 0 0;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  * {
+    display: flex;
+    align-items: center;
+    margin: 0;
+  }
+}
+
+.comment-author-link {
+  text-decoration: none;
+}
+.comment-pfp {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.comment-pfp-sm {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.comment-author-link-text {
+  color: #c6a4ff;
+  font-weight: 600;
+  text-decoration: none;
+}
+.comment-likes {
+  margin-left: 8px;
+  color: #969696;
+  font-size: 0.95em;
+  white-space: nowrap;
+}
+.comment-likes.clickable {
+  cursor: pointer;
+}
+.comment-likes.not-allowed {
+  cursor: not-allowed;
+}
+.comment-likes.loading {
+  opacity: 0.5;
+}
+.comment-content {
+  color: #fff;
+}
+
+.post-comment-list {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.post-comment-list-item {
+  background: #232323;
+  border-radius: 10px;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.comment-form {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.comment-input {
+  flex: 1;
+  padding: 7px 12px;
+  border-radius: 8px;
+  border: 1px solid #595959;
+  background: #232323;
+  color: #fff;
+}
+.comment-send-btn {
+  background: #c6a4ff;
+  color: #181818;
+  border: none;
+  border-radius: 8px;
+  padding: 7px 18px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.comment-send-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.comment-error {
+  color: #ff6c6c;
+  margin-top: 4px;
+}
+
+.image-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: zoom-out;
+}
+.image-modal-inner {
+  position: relative;
+}
+.image-modal-img {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 16px;
+  box-shadow: 0 0 24px #000;
+  background: #222;
+  display: block;
+}
+.image-modal-download {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: #181818cc;
+  border-radius: 8px;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.download-icon-img {
+  width: 28px;
+  height: 28px;
 }
 
 @media (max-width: 768px) {

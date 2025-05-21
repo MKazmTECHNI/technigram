@@ -51,5 +51,7 @@ execute_sql.js
 .db
 *.db
 
+/public/images/
+
 
 /node_modules/
