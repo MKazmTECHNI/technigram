@@ -1,6 +1,6 @@
 "use client";
 
-import { KeyboardEvent, FormEvent, useState } from "react";
+import { KeyboardEvent, FormEvent, useState, useRef } from "react";
 import "./add-post.css";
 
 const serverAddress = process.env.NEXT_PUBLIC_SERVER_ADDRESS;
@@ -9,6 +9,8 @@ export default function Home() {
   const [content, setContent] = useState("");
   const [error, setError] = useState("");
   const [postAdded, setPostAdded] = useState(false);
+  const [image, setImage] = useState<File | null>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   const handleKeyPress = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -17,9 +19,8 @@ export default function Home() {
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault(); // ✅ Correct event type
+    event.preventDefault();
     if (postAdded) return;
-
     setPostAdded(true);
 
     try {
@@ -27,32 +28,45 @@ export default function Home() {
       if (!currentUserData) {
         throw new Error("User not logged in");
       }
-
       const currentUser = JSON.parse(currentUserData);
-      const creatorId = currentUser.id;
       const token = currentUser.token;
 
-      const response = await fetch(`${serverAddress}/posts`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          creator_id: creatorId,
-          content,
-        }),
-      });
+      let response;
+      if (image) {
+        // If image is present, use FormData
+        const formData = new FormData();
+        formData.append("content", content);
+        formData.append("image", image);
+
+        response = await fetch(`${serverAddress}/posts`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        });
+      } else {
+        // No image, send JSON
+        response = await fetch(`${serverAddress}/posts`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            content,
+          }),
+        });
+      }
 
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(
-          `HTTP error! Status: ${response.status} - ${errorData.message}`
+          `HTTP error! Status: ${response.status} - ${errorData.message}, ${response.statusText}`
         );
       }
 
       console.log("Added new post:", await response.json());
-
       window.location.replace("/");
     } catch (error) {
       console.error("Error adding post:", error);
@@ -64,10 +78,7 @@ export default function Home() {
 
   return (
     <main>
-      <h3>
-        just saying - for now only text content works, tags and images are still
-        off
-      </h3>
+      <h3>tags are not yet supported but content and images work</h3>
       <form id="addPostForm" onSubmit={handleSubmit}>
         <h1>Create New Post</h1>
 
@@ -83,9 +94,25 @@ export default function Home() {
 
         <input type="text" id="tags" name="tags" placeholder="Add tags..." />
 
-        <div id="image-upload">
+        <div
+          id="image-upload"
+          onClick={() => imageInputRef.current?.click()}
+          style={{ cursor: "pointer" }}
+        >
           <img src="/icons/upload-icon.png" alt="Upload icon" />
           <h3>Upload image</h3>
+          <input
+            type="file"
+            accept="image/jpeg, image/png"
+            style={{ display: "none" }}
+            ref={imageInputRef}
+            onChange={(e) => {
+              if (e.target.files && e.target.files[0]) {
+                setImage(e.target.files[0]);
+              }
+            }}
+          />
+          {image && <span style={{ color: "#c6a4ff" }}>{image.name}</span>}
         </div>
 
         <button id="formSubmitButton" type="submit">

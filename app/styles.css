@@ -51,15 +51,15 @@
     gap: 14px;
   }
   .post-image {
-    display: none;
-    &[src]:not([src="null"]) {
-      display: block;
-      aspect-ratio: 16/9;
-      width: 100%;
-      background-position: center;
-      object-fit: cover;
-      border-radius: 14px;
-    }
+    margin: auto;
+    aspect-ratio: 16/9;
+    width: 90%;
+    background-position: center;
+    object-fit: cover;
+    border-radius: 14px;
+    margin-top: 10px;
+    display: block;
+    cursor: pointer;
   }
 
   .post-stats-container {
@@ -92,6 +92,12 @@
     background-color: #1e1e1e;
   }
 }
+
+/* Modal for full image preview */
+.image-modal {
+  /* Inline styles are used in TSX for simplicity, but you can move them here if you prefer */
+}
+
 @media (max-width: 768px) {
   .posts {
     padding: 14px;
