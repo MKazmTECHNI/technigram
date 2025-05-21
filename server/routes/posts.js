@@ -10,8 +10,10 @@ const {
   commentLikeLimiter,
 } = require("../middleware/rateLimiter");
 const { authenticateToken } = require("../middleware/auth");
+const { log } = require("console");
 
 const router = express.Router();
+const SERVER_ADDRESS = process.env.SERVER_ADDRESS;
 
 // Multer setup for post images
 const postImageStorage = multer.diskStorage({
@@ -87,8 +89,13 @@ router.get("/:post_id", async (req, res) => {
     // Ensure profile_picture is a valid URL or fallback to default
     const profilePictureUrl =
       profile_picture && profile_picture !== ""
-        ? profile_picture
-        : "/images/profiles/default-profile.png";
+        ? profile_picture.startsWith("http")
+          ? profile_picture
+          : `${SERVER_ADDRESS}${profile_picture}`
+        : `${SERVER_ADDRESS}/images/profiles/default-profile.png`;
+
+    const imageUrl =
+      post.image && post.image !== "" ? `${SERVER_ADDRESS}${post.image}` : null;
 
     const commentsQuery = `
       SELECT comment_id, comment_creator_id, comment_content, likes
@@ -113,7 +120,12 @@ router.get("/:post_id", async (req, res) => {
           comment_content: comment.comment_content,
           likes: comment.likes,
           username: commentUsername,
-          profile_picture: commentProfilePicture,
+          profile_picture:
+            commentProfilePicture && commentProfilePicture !== ""
+              ? commentProfilePicture.startsWith("http")
+                ? commentProfilePicture
+                : `${SERVER_ADDRESS}${commentProfilePicture}`
+              : `${SERVER_ADDRESS}/images/profiles/default-profile.png`,
         };
       })
     );
@@ -127,7 +139,7 @@ router.get("/:post_id", async (req, res) => {
       creatorProfilePicture: profilePictureUrl,
       likes: post.likes,
       date: post.created_at,
-      image: post.image || null,
+      image: imageUrl,
       comments,
     });
   } catch (err) {
@@ -238,7 +250,7 @@ router.post(
         post_id: insertResult.lastID,
         creator_id,
         content,
-        image: imagePath,
+        image: imagePath ? `${SERVER_ADDRESS}${imagePath}` : null,
         likes: 0,
         created_at: new Date(),
       });

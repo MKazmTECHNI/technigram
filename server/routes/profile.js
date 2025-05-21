@@ -7,6 +7,8 @@ const { authenticateToken } = require("../middleware/auth");
 
 const router = express.Router();
 
+const SERVER_ADDRESS = process.env.SERVER_ADDRESS;
+
 // Serve static images
 router.use(
   "/images",
@@ -59,7 +61,10 @@ router.post(
         filePath,
         req.user.id,
       ]);
-      res.json({ success: true, filePath });
+      res.json({
+        success: true,
+        filePath: `${SERVER_ADDRESS}${filePath}`,
+      });
     } catch (err) {
       res.status(500).json({ error: "Failed to save profile picture" });
     }
@@ -74,14 +79,13 @@ router.get("/profile/picture/:userId", async (req, res) => {
       "SELECT profile_picture FROM users WHERE id = ?",
       [userId]
     );
-    console.log("PFP: ", result);
+    let filePath;
     if (!result.length || !result[0].profile_picture) {
-      return res.json({
-        filePath: "/profiles/defult-profile.png",
-      });
+      filePath = `${SERVER_ADDRESS}/images/profiles/default-profile.png`;
+    } else {
+      filePath = `${SERVER_ADDRESS}${result[0].profile_picture}`;
     }
-    console.log(result[0].profile_picture);
-    res.json({ filePath: result[0].profile_picture });
+    res.json({ filePath });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch profile picture" });
   }
@@ -95,12 +99,13 @@ router.get("/picture/:userId", async (req, res) => {
       "SELECT profile_picture FROM users WHERE id = ?",
       [userId]
     );
+    let filePath;
     if (!result.length || !result[0].profile_picture) {
-      return res.json({
-        filePath: "/images/profiles/default-profile.png",
-      });
+      filePath = `${SERVER_ADDRESS}/images/profiles/default-profile.png`;
+    } else {
+      filePath = `${SERVER_ADDRESS}${result[0].profile_picture}`;
     }
-    res.json({ filePath: result[0].profile_picture });
+    res.json({ filePath });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch profile picture" });
   }

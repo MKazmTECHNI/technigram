@@ -4,6 +4,8 @@ const { authenticateToken } = require("../middleware/auth");
 
 const router = express.Router();
 
+const SERVER_ADDRESS = process.env.SERVER_ADDRESS;
+
 // GET USER USERNAME BY ID
 router.get("/:user_id", async (req, res) => {
   const user_id = req.params.user_id;
@@ -31,7 +33,12 @@ router.get("/by-username/:username", async (req, res) => {
     if (result.length === 0) {
       return res.status(404).json({ error: "User not found" });
     }
-    res.json(result[0]);
+    const user = result[0];
+    user.profile_picture =
+      user.profile_picture && user.profile_picture !== ""
+        ? `${SERVER_ADDRESS}${user.profile_picture}`
+        : `${SERVER_ADDRESS}/images/profiles/default-profile.png`;
+    res.json(user);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch user details" });
   }

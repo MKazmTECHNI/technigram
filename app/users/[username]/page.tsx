@@ -234,7 +234,8 @@ export default function UserProfilePage() {
       >
         <img
           src={
-            profile.profile_picture || "/images/profiles/default-profile.png"
+            profile.profile_picture ||
+            `${serverAddress}/images/profiles/default-profile.png`
           }
           alt="Profile"
           width={256}
@@ -305,7 +306,7 @@ export default function UserProfilePage() {
                     <img
                       src={
                         post.creatorProfilePicture ||
-                        "/images/profiles/default-profile.png"
+                        `${serverAddress}/images/profiles/default-profile.png`
                       }
                       alt="pfp"
                       className="post-pfp"

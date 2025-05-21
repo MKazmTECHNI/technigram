@@ -267,7 +267,7 @@ export default function Home() {
                   className="post-author-link"
                 >
                   <img
-                    src={post.creatorProfilePicture}
+                    src={`${post.creatorProfilePicture}`}
                     alt="pfp"
                     className="post-pfp"
                   />
@@ -350,7 +350,7 @@ export default function Home() {
                     className="comment-author-link"
                   >
                     <img
-                      src={mostLikedComment.profile_picture}
+                      src={`${serverAddress}/${mostLikedComment.profile_picture}`}
                       alt="pfp"
                       className="comment-pfp"
                     />
@@ -406,7 +406,7 @@ export default function Home() {
                         className="comment-author-link"
                       >
                         <img
-                          src={comment.profile_picture}
+                          src={`${serverAddress}/${comment.profile_picture}`}
                           alt="pfp"
                           className="comment-pfp-sm"
                         />

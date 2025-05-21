@@ -7,7 +7,7 @@ const serverAddress = process.env.NEXT_PUBLIC_SERVER_ADDRESS;
 
 export default function ProfilePage() {
   const [profilePicture, setProfilePicture] = useState<string>(
-    "/images/profiles/default-profile.png"
+    `${serverAddress}/images/profiles/default-profile.png`
   );
   const [userId, setUserId] = useState<string | null>(null);
   const [username, setUsername] = useState<string>("");
@@ -44,7 +44,10 @@ export default function ProfilePage() {
         const data = await response.json();
         setProfilePicture(data.filePath);
       } catch (error) {
-        console.error("Error fetching profile picture:", error);
+        // Always use backend default image URL
+        setProfilePicture(
+          `${serverAddress}/images/profiles/default-profile.png`
+        );
       }
     }
 
