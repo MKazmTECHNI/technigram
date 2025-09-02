@@ -66,7 +66,7 @@ export default function Home() {
         return;
       }
 
-      // window.location.replace("/");
+      window.location.replace("/");
     } catch (error) {
       console.error("Error adding post:", error);
       setError(`Failed to add post: ${error}`);

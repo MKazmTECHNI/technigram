@@ -115,17 +115,28 @@ router.get("/:post_id", async (req, res) => {
           username: commentUsername,
           profile_picture: commentProfilePicture,
         } = commentUserResults[0];
+        let profilePicUrl;
+        if (commentProfilePicture && commentProfilePicture !== "") {
+          if (commentProfilePicture.startsWith("http")) {
+            profilePicUrl = commentProfilePicture;
+          } else {
+            // Ensure correct path prefix
+            const picPath = commentProfilePicture.startsWith(
+              "/images/profiles/"
+            )
+              ? commentProfilePicture
+              : `images/profiles/${commentProfilePicture}`;
+            profilePicUrl = `${picPath}`;
+          }
+        } else {
+          profilePicUrl = `images/profiles/default-profile.png`;
+        }
         return {
           comment_id: comment.comment_id,
           comment_content: comment.comment_content,
           likes: comment.likes,
           username: commentUsername,
-          profile_picture:
-            commentProfilePicture && commentProfilePicture !== ""
-              ? commentProfilePicture.startsWith("http")
-                ? commentProfilePicture
-                : `${SERVER_ADDRESS}${commentProfilePicture}`
-              : `${SERVER_ADDRESS}/images/profiles/default-profile.png`,
+          profile_picture: profilePicUrl,
         };
       })
     );

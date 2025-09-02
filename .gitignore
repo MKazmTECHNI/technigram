@@ -49,9 +49,13 @@ help.txt
 
 execute_sql.js
 .db
-*.db
 
 /public/images/
+
+# Ignore admin panel (frontend and backend)
+/app/admin/
+/server/api/
+/server/db_script.js
 
 
 /node_modules/

@@ -350,7 +350,7 @@ export default function Home() {
                     className="comment-author-link"
                   >
                     <img
-                      src={`${serverAddress}/${mostLikedComment.profile_picture}`}
+                      src={`${serverAddress}${mostLikedComment.profile_picture}`}
                       alt="pfp"
                       className="comment-pfp"
                     />
@@ -406,7 +406,7 @@ export default function Home() {
                         className="comment-author-link"
                       >
                         <img
-                          src={`${serverAddress}/${comment.profile_picture}`}
+                          src={`${comment.profile_picture}`}
                           alt="pfp"
                           className="comment-pfp-sm"
                         />
