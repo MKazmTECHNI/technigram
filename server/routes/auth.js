@@ -13,20 +13,13 @@ router.get(
   passport.authenticate("google", { failureRedirect: "/login" }),
   (req, res) => {
     req.session.token = req.user.token;
-    res.send(`
-      <html>
-        <body>
-          <script>
-            localStorage.setItem("currentUser", JSON.stringify({
-              id: "${req.user.id}",
-              username: "${req.user.username}",
-              token: "${req.user.token}"
-            }));
-            window.location.replace("/index.html");
-          </script>
-        </body>
-      </html>
-    `);
+    // Redirect to frontend loginCallback page with user info in query params
+    const params = new URLSearchParams({
+      id: req.user.id,
+      username: req.user.username,
+      token: req.user.token,
+    }).toString();
+    res.redirect(`/loginCallback?${params}`);
   }
 );
 

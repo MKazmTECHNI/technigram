@@ -8,7 +8,7 @@ passport.use(
     {
       clientID: process.env.GOOGLESTRATEGY_CLIENTID,
       clientSecret: process.env.GOOGLESTRATEGY_CLIENTSECRET,
-      callbackURL: "https://technigram.onrender.com/auth/google/callback",
+      callbackURL: process.env.GOOGLESTRATEGY_CALLBACKURL,
     },
     async (accessToken, refreshToken, profile, done) => {
       const email = profile.emails[0].value;
