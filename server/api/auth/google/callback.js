@@ -72,12 +72,12 @@ router.post("/", async (req, res) => {
         [username, email, trueName]
       );
       console.log("[Google Callback] New user created:", newUser);
-      token = jwt.sign({ id: newUser.id }, process.env.APP_SECRET, {
+      token = jwt.sign({ id: newUser.lastID }, process.env.APP_SECRET, {
         expiresIn: "1h",
       });
       console.log("[Google Callback] Setting token for new user...");
-      await exec_sql(`UPDATE users SET token = ? WHERE id = ?`, [token, newUser.id]);
-      user = { id: newUser.id, username };
+      await exec_sql(`UPDATE users SET token = ? WHERE id = ?`, [token, newUser.lastID]);
+      user = { id: newUser.lastID, username };
     }
     console.log("[Google Callback] Responding with:", { id: user.id, username: user.username, token });
     res.json({ id: user.id, username: user.username, token });
