@@ -1,9 +1,9 @@
 
 "use client";
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function LoginCallback() {
+function LoginCallbackInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -26,5 +26,13 @@ export default function LoginCallback() {
     <main>
       Logging you in...
     </main>
+  );
+}
+
+export default function LoginCallback() {
+  return (
+    <Suspense>
+      <LoginCallbackInner />
+    </Suspense>
   );
 }
