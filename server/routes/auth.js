@@ -19,7 +19,7 @@ router.get(
       username: req.user.username,
       token: req.user.token,
     }).toString();
-    res.redirect(`/loginCallback?${params}`);
+    res.redirect(`https://technigram.tech/login/callback?${params}`);
   }
 );
 

@@ -125,11 +125,11 @@ router.get("/:post_id", async (req, res) => {
               "/images/profiles/"
             )
               ? commentProfilePicture
-              : `images/profiles/${commentProfilePicture}`;
+              : `${SERVER_ADDRESS}/images/profiles/${commentProfilePicture}`;
             profilePicUrl = `${picPath}`;
           }
         } else {
-          profilePicUrl = `images/profiles/default-profile.png`;
+          profilePicUrl = `${SERVER_ADDRESS}/images/profiles/default-profile.png`;
         }
         return {
           comment_id: comment.comment_id,
