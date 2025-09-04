@@ -3,6 +3,8 @@ const passport = require("passport");
 
 const router = express.Router();
 
+const serverAddress = process.env.NEXT_PUBLIC_SERVER_ADDRESS;
+
 router.get(
   "/auth/google",
   passport.authenticate("google", { scope: ["profile", "email"] })
@@ -19,7 +21,7 @@ router.get(
       username: req.user.username,
       token: req.user.token,
     }).toString();
-    res.redirect(`https://technigram.tech/login/callback?${params}`);
+    res.redirect(`${serverAddress}/login/callback?${params}`);
   }
 );
 
