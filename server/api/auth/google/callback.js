@@ -25,8 +25,9 @@ router.post("/", async (req, res) => {
 
     // Decode id_token to get user info
     const userInfo = jwt.decode(id_token);
-    const email = userInfo.email;
-    const username = userInfo.name;
+  const email = userInfo.email;
+  // Use name if available, otherwise fallback to email
+  const username = userInfo.name || email;
 
     // Validate email pattern
     if (!/^u\d{3}_[a-z]{6}_[a-z]{3}@technischools\.com$/.test(email)) {
@@ -51,9 +52,10 @@ router.post("/", async (req, res) => {
         await exec_sql(`UPDATE users SET token = ? WHERE id = ?`, [token, user.id]);
       }
     } else {
+      const trueName = userInfo.name || email;
       const newUser = await exec_sql(
-        `INSERT INTO users (username, email) VALUES (?, ?) RETURNING id`,
-        [username, email]
+        `INSERT INTO users (username, email, true_name) VALUES (?, ?, ?) RETURNING id`,
+        [username, email, trueName]
       );
       token = jwt.sign({ id: newUser.id }, process.env.APP_SECRET, {
         expiresIn: "1h",

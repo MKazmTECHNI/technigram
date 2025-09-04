@@ -1,7 +1,9 @@
-
 "use client";
+
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+
+const serverAddress = process.env.NEXT_PUBLIC_SERVER_ADDRESS;
 
 function LoginCallbackInner() {
   const router = useRouter();
@@ -15,7 +17,7 @@ function LoginCallbackInner() {
       return;
     }
     // Send code to backend to exchange for user info and token
-    fetch("https://technigram.onrender.com/api/auth/google/callback", {
+    fetch(`${serverAddress}/api/auth/google/callback`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ code }),
