@@ -13,7 +13,7 @@ export default function ReportBugPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setStatus("");
-    const res = await fetch(`${serverAddress}/api/report`, {
+    const res = await fetch(`${serverAddress}/routes/report`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ type, title, description, imageUrl }),
