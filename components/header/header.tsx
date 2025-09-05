@@ -12,7 +12,7 @@ export default function Header() {
       </nav>
       <h1 className="logoText">TECHNIGRAM</h1>
       <nav>
-        <Link href={"/changelog"}>Changelog</Link>
+  <Link href={"/report-bug"}>Report</Link>
         <Link href={"/login"}>Login</Link>
         <Link href={"/rules"}>Rules</Link>
       </nav>
