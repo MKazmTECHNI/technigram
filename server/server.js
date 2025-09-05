@@ -51,7 +51,7 @@ app.use("/users", usersRoutes);
 app.use(profileRoutes);
 app.use(changelogRoutes);
 app.use("/api/auth/google/callback", googleCallbackApi);
-app.use("/api/report", reportRouter);
+app.use("/report", reportRouter);
 
 // ADMIN PANEL ENDPOINTS (DISABLED FOR PROD)
 // app.get("/api/db/tables", getTables);
