@@ -10,12 +10,14 @@ THE DATABASE PROVIDED IS JUST AN EXAMPLE. I leave it mostly so I have working on
 
 "U using express? Dumbass ew ew ew ew"
 
-- Yes, I'm not going to be adding 2 hours to my worktime, just so i have 3% speed increase, and so it can work fluently with 210 000 users insead of 21 999 at the same time. Not more than 10 ppl are probably gonna use it in same time anyways, and platform is not in plans of holding over 500 ppl.
+- Yes, I'm not going to be adding 2 hours to my worktime per every route, just so i have 3% speed increase, and so it can work fluently with 210 000 users insead of 209 999 at the same time. Not more than 10 ppl are probably gonna use it in same time anyways, and platform is not in plans of holding over 500 ppl.
 
-That was the only question I remember rn, you can torture me with more ig.
+That was the only question I remember rn, you can torture me with more ig, you've got "Report" on technigram, just choose proposition.
 
 ### Again its a placeholder, so no tutorial how to download source files and reuse it.
 
+Oh, and if you want to use it for something other than inspiration/learning (read: if you want to take my app, change colors, and call it your own.), just tell me and I'll give you thumbs ups. 
+
 # MOST IMPORTANT TO DO:
 
-- REWRITE LOGINING IN SO THERE'S NO SHORT KICK TO BACKEND SERVER, cuz it's http, making flow stop and declining login.
+- lowkey idk, we back to day ones so: The Algorythm (post finding), permisje (mod page, nauczyciele, przewodniczacy)

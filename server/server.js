@@ -34,6 +34,8 @@ const profileRoutes = require("./routes/profile");
 const changelogRoutes = require("./routes/changelog");
 const googleCallbackApi = require("./api/auth/google/callback");
 const reportRouter = require("./routes/report");
+const dbTablesApi = require("./api/db/tables");
+const checkPermissionApi = require("./api/db/checkPermission");
 
 // ADMIN PANEL ENDPOINTS (DISABLED FOR PROD)
 // const getTables = require("./api/db/tables");
@@ -51,7 +53,10 @@ app.use("/users", usersRoutes);
 app.use(profileRoutes);
 app.use(changelogRoutes);
 app.use("/api/auth/google/callback", googleCallbackApi);
+
 app.use("/report", reportRouter);
+app.use("/api/db/tables", dbTablesApi);
+app.use("/api/db/check-permission", checkPermissionApi);
 
 // ADMIN PANEL ENDPOINTS (DISABLED FOR PROD)
 // app.get("/api/db/tables", getTables);

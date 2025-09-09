@@ -52,10 +52,6 @@ execute_sql.js
 
 /public/images/
 
-# Ignore admin panel (frontend and backend)
-/app/admin/
-/server/api/db
-/server/db_script.js
 
 
 /node_modules/

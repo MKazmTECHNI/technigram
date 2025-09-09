@@ -196,7 +196,6 @@ export default function Home() {
     fetchedRef.current = true;
 
     async function fetchPosts() {
-      console.log(serverAddress);
       try {
         const postCountResponse = await fetch(`${serverAddress}/posts/count`);
         if (!postCountResponse.ok) {
@@ -214,7 +213,6 @@ export default function Home() {
               continue;
             }
             const post = await response.json();
-            console.log(post);
             setPosts((prevPosts) => [...prevPosts, post]);
           } catch (postError) {
             console.warn(postError);
