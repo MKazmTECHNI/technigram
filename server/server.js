@@ -1,12 +1,24 @@
+
 const express = require("express");
 const path = require("path");
 const cors = require("cors");
 const session = require("express-session");
 const passport = require("passport");
+const https = require("https");
+const fs = require("fs");
 require("dotenv").config();
 
+
+const { initDb } = require('./init-db');
+
+
 const app = express();
-const port = 3001;
+const port = 7777;
+
+const httpsOptions = {
+  key: fs.readFileSync(path.join(__dirname, '../privkey.pem')),
+  cert: fs.readFileSync(path.join(__dirname, '../fullchain.pem'))
+};
 
 app.use(cors());
 app.use(express.json());
@@ -73,6 +85,12 @@ app.get("/healthcheck", (req, res) => {
   });
 });
 
-app.listen(port, () => {
-  console.log(`Server is running at`, process.env.SERVER_ADDRESS);
+initDb((err) => {
+  if (err) {
+    console.error('Failed to initialize database:', err);
+    process.exit(1);
+  }
+  https.createServer(httpsOptions, app).listen(port, () => {
+    console.log(`HTTPS server is running at ${port}`);
+  });
 });

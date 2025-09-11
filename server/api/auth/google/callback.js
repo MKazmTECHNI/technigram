@@ -70,18 +70,26 @@ router.post("/", async (req, res) => {
         await exec_sql(`UPDATE users SET token = ? WHERE id = ?`, [token, user.id]);
       }
     } else {
+      // Set default profile picture path
+      const defaultProfilePicture = "/images/profiles/default-profile.png";
       const newUser = await exec_sql(
-        `INSERT INTO users (username, email, true_name) VALUES (?, ?, ?) RETURNING id`,
-        [username, email, trueName]
+        `INSERT INTO users (username, email, true_name, profile_picture) VALUES (?, ?, ?, ?) RETURNING id`,
+        [username, email, trueName, defaultProfilePicture]
       );
       console.log("[Google Callback] New user created:", newUser);
       token = jwt.sign({ id: newUser.lastID }, process.env.APP_SECRET, {
         expiresIn: "1h",
       });
       await exec_sql(`UPDATE users SET token = ? WHERE id = ?`, [token, newUser.lastID]);
-      user = { id: newUser.lastID, username };
+      user = { id: newUser.lastID, username, profile_picture: defaultProfilePicture };
     }
-    res.json({ id: user.id, username: user.username, token });
+    const defaultProfilePicture = "/images/profiles/default-profile.png";
+    res.json({
+      id: user.id,
+      username: user.username,
+      token,
+      profile_picture: user.profile_picture || defaultProfilePicture
+    });
   } catch (err) {
     console.error("[Google Callback] Error:", err);
     res.status(500).json({ error: err.message });
