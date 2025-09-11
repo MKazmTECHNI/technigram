@@ -395,7 +395,7 @@ export default function UserProfilePage() {
                       style={{ textDecoration: "none" }}
                     >
                       <img
-                        src={mostLikedComment.profile_picture}
+                        src={`${serverAddress}${mostLikedComment.profile_picture}`}
                         alt="pfp"
                         style={{
                           width: 32,
@@ -479,7 +479,7 @@ export default function UserProfilePage() {
                           style={{ textDecoration: "none" }}
                         >
                           <img
-                            src={comment.profile_picture}
+                            src={`${serverAddress}${comment.profile_picture}`}
                             alt="pfp"
                             style={{
                               width: 28,
