@@ -158,7 +158,7 @@ export default function ProfilePage() {
       <div className="profile-picture-section">
         <img
           id="profilePicture"
-          src={`${serverAddress}${profilePicture}`}
+          src={`${profilePicture}`}
           alt="Profile"
           width="128"
           height="128"

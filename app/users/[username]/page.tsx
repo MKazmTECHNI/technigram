@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useParams } from "next/navigation";
+import Link from "next/link";
+import Posts from "../../../components/posts/posts";
 
 const serverAddress = process.env.NEXT_PUBLIC_SERVER_ADDRESS;
 
@@ -22,8 +23,8 @@ type Post = {
   likes: number;
   comments: Comment[];
   creatorUsername: string;
-  trueName?: string;
-  creatorProfilePicture?: string;
+  trueName: string;
+  creatorProfilePicture: string;
 };
 
 type UserProfile = {
@@ -44,10 +45,12 @@ export default function UserProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [posts, setPosts] = useState<Post[]>([]);
-  const [modalImage, setModalImage] = useState<string | null>(null);
-  const [openComments, setOpenComments] = useState<{ [key: number]: boolean }>(
+  const [likeLoading, setLikeLoading] = useState<{ [key: number]: boolean }>(
     {}
   );
+  const [commentLikeLoading, setCommentLikeLoading] = useState<{
+    [key: number]: boolean;
+  }>({});
   const [commentInputs, setCommentInputs] = useState<{ [key: number]: string }>(
     {}
   );
@@ -57,12 +60,10 @@ export default function UserProfilePage() {
   const [commentError, setCommentError] = useState<{ [key: number]: string }>(
     {}
   );
-  const [likeLoading, setLikeLoading] = useState<{ [key: number]: boolean }>(
+  const [modalImage, setModalImage] = useState<string | null>(null);
+  const [openComments, setOpenComments] = useState<{ [key: number]: boolean }>(
     {}
   );
-  const [commentLikeLoading, setCommentLikeLoading] = useState<{
-    [key: number]: boolean;
-  }>({});
 
   // Helper to check if user is logged in
   const getCurrentUser = () => {
@@ -180,22 +181,26 @@ export default function UserProfilePage() {
               const postDetails = await fetch(
                 `${serverAddress}/posts/${post.post_id}`
               );
+              const safeTrueName = profile?.true_name ?? "";
+              const safeProfilePicture =
+                profile?.profile_picture ??
+                `${serverAddress}/images/profiles/default-profile.png`;
               if (postDetails.ok) {
                 const full = await postDetails.json();
                 return {
                   ...post,
                   comments: full.comments || [],
                   creatorUsername: username,
-                  trueName: profile?.true_name,
-                  creatorProfilePicture: profile?.profile_picture,
+                  trueName: safeTrueName,
+                  creatorProfilePicture: safeProfilePicture,
                 };
               }
               return {
                 ...post,
                 comments: [],
                 creatorUsername: username,
-                trueName: profile?.true_name,
-                creatorProfilePicture: profile?.profile_picture,
+                trueName: safeTrueName,
+                creatorProfilePicture: safeProfilePicture,
               };
             })
           );
@@ -270,334 +275,22 @@ export default function UserProfilePage() {
       <h3 style={{ color: "#c6a4ff", marginBottom: 18, fontSize: "1.25em" }}>
         Posts
       </h3>
-      {posts.length === 0 ? (
-        <div style={{ color: "#969696", textAlign: "center" }}>
-          No posts yet.
-        </div>
-      ) : (
-        <div className="posts" style={{ gap: 21 }}>
-          {posts.map((post) => {
-            const mostLikedComment =
-              post.comments.length > 0
-                ? [...post.comments].sort(
-                    (a, b) => (b.likes || 0) - (a.likes || 0)
-                  )[0]
-                : null;
-            const otherComments =
-              post.comments.length > 1
-                ? [...post.comments]
-                    .sort((a, b) => (b.likes || 0) - (a.likes || 0))
-                    .slice(1)
-                : [];
-            const postId = post.post_id;
-            const commentCount = post.comments.length;
-
-            return (
-              <div key={postId} className="post">
-                <div>
-                  <Link
-                    href={`/users/${post.creatorUsername}`}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      textDecoration: "none",
-                    }}
-                  >
-                    <img
-                      src={
-                        post.creatorProfilePicture ||
-                        `${serverAddress}/images/profiles/default-profile.png`
-                      }
-                      alt="pfp"
-                      className="post-pfp"
-                    />
-                    <div className="post-author-container">
-                      <div className="upper">
-                        <p className="post-author">@{post.creatorUsername}</p>
-                        <p className="date">
-                          {new Date(post.date).toLocaleDateString("en-US", {
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                            hour: "numeric",
-                            minute: "numeric",
-                          })}
-                        </p>
-                      </div>
-                      <p className="post-author-name">{post.trueName}</p>
-                    </div>
-                  </Link>
-                </div>
-                <p>{post.content}</p>
-                <div className="post-tags"></div>
-                {post.image && post.image !== "null" && post.image !== "" && (
-                  <img
-                    src={post.image}
-                    className="post-image"
-                    alt="Post"
-                    style={{ cursor: "pointer" }}
-                    onClick={() => setModalImage(post.image!)}
-                  />
-                )}
-                <div className="post-stats-container">
-                  <img
-                    src="../icons/heart-icon.svg"
-                    alt=""
-                    className="heart-icon icon"
-                    style={{
-                      cursor: getCurrentUser() ? "pointer" : "not-allowed",
-                      opacity: likeLoading[postId] ? 0.5 : 1,
-                    }}
-                    onClick={() =>
-                      getCurrentUser() && !likeLoading[postId]
-                        ? handlePostLike(postId)
-                        : undefined
-                    }
-                    title={
-                      getCurrentUser() ? "Like/unlike post" : "Login to like"
-                    }
-                  />
-                  <p className="post-likes">{post.likes}</p>
-                  <img
-                    src="../icons/speech-bubble.png"
-                    className="comment-icon icon"
-                    style={{ cursor: "pointer" }}
-                    onClick={() =>
-                      setOpenComments((prev) => ({
-                        ...prev,
-                        [postId]: !prev[postId],
-                      }))
-                    }
-                  />
-                  <p
-                    className="post-likes post-comments"
-                    style={{ minWidth: 24 }}
-                  >
-                    {commentCount}
-                  </p>
-                </div>
-                {/* Most liked comment */}
-                {mostLikedComment && (
-                  <div
-                    className="post-comment-container"
-                    style={{
-                      background: "#232323",
-                      borderRadius: 10,
-                      margin: "10px 0 0 0",
-                      padding: "10px 14px",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10,
-                    }}
-                  >
-                    <Link
-                      href={`/users/${mostLikedComment.username}`}
-                      style={{ textDecoration: "none" }}
-                    >
-                      <img
-                        src={`${serverAddress}${mostLikedComment.profile_picture}`}
-                        alt="pfp"
-                        style={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: "50%",
-                          objectFit: "cover",
-                        }}
-                      />
-                    </Link>
-                    <div>
-                      <Link
-                        href={`/users/${mostLikedComment.username}`}
-                        style={{
-                          color: "#c6a4ff",
-                          fontWeight: 600,
-                          textDecoration: "none",
-                        }}
-                      >
-                        @{mostLikedComment.username}
-                      </Link>
-                      <span
-                        style={{
-                          marginLeft: 8,
-                          color: "#969696",
-                          fontSize: "0.95em",
-                          cursor: getCurrentUser() ? "pointer" : "not-allowed",
-                          opacity: commentLikeLoading[
-                            mostLikedComment.comment_id
-                          ]
-                            ? 0.5
-                            : 1,
-                        }}
-                        onClick={() =>
-                          getCurrentUser() &&
-                          !commentLikeLoading[mostLikedComment.comment_id]
-                            ? handleCommentLike(
-                                mostLikedComment.comment_id,
-                                postId
-                              )
-                            : undefined
-                        }
-                        title={
-                          getCurrentUser()
-                            ? "Like/unlike comment"
-                            : "Login to like"
-                        }
-                      >
-                        {mostLikedComment.likes ?? 0} likes
-                      </span>
-                      <div style={{ color: "#fff" }}>
-                        {mostLikedComment.comment_content}
-                      </div>
-                    </div>
-                  </div>
-                )}
-                {/* All comments (except most liked), toggled */}
-                {openComments[postId] && otherComments.length > 0 && (
-                  <div
-                    className="post-comment-list"
-                    style={{
-                      marginTop: 8,
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 8,
-                    }}
-                  >
-                    {otherComments.map((comment, cidx) => (
-                      <div
-                        key={comment.comment_id}
-                        style={{
-                          background: "#232323",
-                          borderRadius: 10,
-                          padding: "8px 12px",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 10,
-                        }}
-                      >
-                        <Link
-                          href={`/users/${comment.username}`}
-                          style={{ textDecoration: "none" }}
-                        >
-                          <img
-                            src={`${serverAddress}${comment.profile_picture}`}
-                            alt="pfp"
-                            style={{
-                              width: 28,
-                              height: 28,
-                              borderRadius: "50%",
-                              objectFit: "cover",
-                            }}
-                          />
-                        </Link>
-                        <div>
-                          <Link
-                            href={`/users/${comment.username}`}
-                            style={{
-                              color: "#c6a4ff",
-                              fontWeight: 600,
-                              textDecoration: "none",
-                            }}
-                          >
-                            @{comment.username}
-                          </Link>
-                          <span
-                            style={{
-                              marginLeft: 8,
-                              color: "#969696",
-                              fontSize: "0.95em",
-                              cursor: getCurrentUser()
-                                ? "pointer"
-                                : "not-allowed",
-                              opacity: commentLikeLoading[comment.comment_id]
-                                ? 0.5
-                                : 1,
-                            }}
-                            onClick={() =>
-                              getCurrentUser() &&
-                              !commentLikeLoading[comment.comment_id]
-                                ? handleCommentLike(comment.comment_id, postId)
-                                : undefined
-                            }
-                            title={
-                              getCurrentUser()
-                                ? "Like/unlike comment"
-                                : "Login to like"
-                            }
-                          >
-                            {comment.likes ?? 0} likes
-                          </span>
-                          <div style={{ color: "#fff" }}>
-                            {comment.comment_content}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-      {modalImage && (
-        <div
-          className="image-modal"
-          onClick={() => setModalImage(null)}
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            zIndex: 1000,
-            width: "100vw",
-            height: "100vh",
-            background: "rgba(0,0,0,0.85)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: "zoom-out",
-          }}
-        >
-          <div style={{ position: "relative" }}>
-            <img
-              src={modalImage}
-              alt="Full"
-              style={{
-                maxWidth: "90vw",
-                maxHeight: "90vh",
-                objectFit: "contain",
-                borderRadius: "16px",
-                boxShadow: "0 0 24px #000",
-                background: "#222",
-                display: "block",
-              }}
-              onClick={(e) => e.stopPropagation()}
-            />
-            <a
-              href={modalImage}
-              download
-              style={{
-                position: "absolute",
-                top: 16,
-                right: 16,
-                background: "#181818cc",
-                borderRadius: "8px",
-                padding: "6px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-              onClick={(e) => e.stopPropagation()}
-              title="Download image"
-            >
-              <img
-                src="/icons/download_icon.png"
-                alt="Download"
-                style={{ width: 28, height: 28 }}
-              />
-            </a>
-          </div>
-        </div>
-      )}
+      <Posts
+        posts={posts}
+        serverAddress={serverAddress}
+        likeLoading={likeLoading}
+        commentLikeLoading={commentLikeLoading}
+        handlePostLike={handlePostLike}
+        handleCommentLike={handleCommentLike}
+        getCurrentUser={getCurrentUser}
+        commentInputs={commentInputs}
+        setCommentInputs={setCommentInputs}
+        commentLoading={commentLoading}
+        commentError={commentError}
+        setCommentLoading={setCommentLoading}
+        setCommentError={setCommentError}
+        refreshComments={refreshComments}
+      />
     </div>
   );
 }

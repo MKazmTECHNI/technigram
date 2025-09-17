@@ -18,6 +18,21 @@ export default function Home() {
     }
   };
 
+  // Handle paste event for images
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    if (
+      e.clipboardData &&
+      e.clipboardData.files &&
+      e.clipboardData.files.length > 0
+    ) {
+      const file = e.clipboardData.files[0];
+      if (file.type.startsWith("image/")) {
+        setImage(file);
+        setError("");
+      }
+    }
+  };
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (postAdded) return;
@@ -89,6 +104,7 @@ export default function Home() {
           value={content}
           onChange={(e) => setContent(e.target.value)}
           onKeyPress={handleKeyPress}
+          onPaste={handlePaste}
         ></textarea>
 
         <input type="text" id="tags" name="tags" placeholder="Add tags..." />
