@@ -6,6 +6,81 @@ const router = express.Router();
 
 const SERVER_ADDRESS = process.env.SERVER_ADDRESS;
 
+// GET LIKED POSTS FOR CURRENT USER (must be before wildcard routes)
+router.get("/liked-posts", authenticateToken, async (req, res) => {
+  const userId = req.user.id;
+  try {
+    const posts = await return_sql(`
+      SELECT p.post_id, p.content, p.creator_id, p.created_at, p.likes, p.image,
+             u.username, u.true_name, u.profile_picture
+      FROM posts p
+      JOIN users u ON p.creator_id = u.id
+      JOIN post_likes pl ON p.post_id = pl.post_id
+      WHERE pl.user_id = ?
+      ORDER BY pl.rowid DESC
+    `, [userId]);
+
+    const postIds = posts.map(p => p.post_id);
+    let commentsMap = {};
+    if (postIds.length > 0) {
+      const placeholders = postIds.map(() => '?').join(',');
+      const comments = await return_sql(`
+        SELECT c.comment_id, c.comment_creator_id, c.post_id, c.comment_content, c.likes,
+               u.username, u.profile_picture
+        FROM comments c
+        JOIN users u ON c.comment_creator_id = u.id
+        WHERE c.post_id IN (${placeholders})
+      `, postIds);
+      for (const comment of comments) {
+        if (!commentsMap[comment.post_id]) commentsMap[comment.post_id] = [];
+        let picUrl;
+        if (comment.profile_picture && comment.profile_picture !== "") {
+          picUrl = comment.profile_picture.startsWith("http")
+            ? comment.profile_picture
+            : `${SERVER_ADDRESS}${comment.profile_picture}`;
+        } else {
+          picUrl = `${SERVER_ADDRESS}/images/profiles/default-profile.png`;
+        }
+        commentsMap[comment.post_id].push({
+          comment_id: comment.comment_id,
+          comment_content: comment.comment_content,
+          likes: comment.likes || 0,
+          username: comment.username,
+          profile_picture: picUrl,
+          isLiked: false,
+        });
+      }
+    }
+
+    const result = posts.map(post => {
+      const profilePictureUrl =
+        post.profile_picture && post.profile_picture !== ""
+          ? post.profile_picture.startsWith("http")
+            ? post.profile_picture
+            : `${SERVER_ADDRESS}${post.profile_picture}`
+          : `${SERVER_ADDRESS}/images/profiles/default-profile.png`;
+      const imageUrl = post.image && post.image !== "" ? `${SERVER_ADDRESS}${post.image}` : null;
+      return {
+        post_id: post.post_id,
+        content: post.content,
+        creatorUsername: post.username,
+        trueName: post.true_name,
+        creatorProfilePicture: profilePictureUrl,
+        likes: post.likes || 0,
+        date: post.created_at,
+        image: imageUrl,
+        comments: commentsMap[post.post_id] || [],
+        isLiked: true,
+      };
+    });
+
+    res.json({ posts: result, total: result.length });
+  } catch (err) {
+    console.error("Error fetching liked posts:", err);
+    res.status(500).json({ error: "Failed to fetch liked posts" });
+  }
+});
+
 // GET USER USERNAME BY ID
 router.get("/:user_id", async (req, res) => {
   const user_id = req.params.user_id;

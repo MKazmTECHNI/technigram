@@ -63,6 +63,8 @@ export default function UserProfilePage() {
   const [commentError, setCommentError] = useState<{ [key: number]: string }>(
     {},
   );
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
   const [modalImage, setModalImage] = useState<string | null>(null);
   const [openComments, setOpenComments] = useState<{ [key: number]: boolean }>(
     {},
@@ -220,6 +222,21 @@ export default function UserProfilePage() {
         }
         const data = await res.json();
         setProfile(data);
+
+        // Check follow status
+        const user = getCurrentUser();
+        if (user && data.id) {
+          try {
+            const followRes = await fetch(
+              `${serverAddress}/social/follow/${data.id}/status`,
+              { headers: { Authorization: `Bearer ${user.token}` } },
+            );
+            if (followRes.ok) {
+              const followData = await followRes.json();
+              setIsFollowing(followData.following);
+            }
+          } catch {}
+        }
       } catch {
         window.location.replace("/");
       } finally {
@@ -228,6 +245,23 @@ export default function UserProfilePage() {
     }
     fetchProfile();
   }, [username]);
+
+  const handleFollow = async () => {
+    const user = getCurrentUser();
+    if (!user || !profile) return;
+    setFollowLoading(true);
+    try {
+      const res = await fetch(`${serverAddress}/social/follow/${profile.id}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${user.token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setIsFollowing(data.following);
+      }
+    } catch {}
+    setFollowLoading(false);
+  };
 
   useEffect(() => {
     if (!username) return;
@@ -302,6 +336,25 @@ export default function UserProfilePage() {
               day: "numeric",
             })}
           </div>
+        )}
+        {getCurrentUser() && Number(getCurrentUser().id) !== profile.id && (
+          <button
+            onClick={handleFollow}
+            disabled={followLoading}
+            style={{
+              marginTop: 8,
+              padding: "10px 32px",
+              borderRadius: 12,
+              border: "none",
+              fontWeight: 600,
+              fontSize: "1em",
+              cursor: followLoading ? "wait" : "pointer",
+              background: isFollowing ? "#c6a4ff" : "#3a3a3a",
+              color: isFollowing ? "#181818" : "#fff",
+            }}
+          >
+            {followLoading ? "..." : isFollowing ? "Following" : "Follow"}
+          </button>
         )}
       </div>
       <h3 style={{ color: "#c6a4ff", marginBottom: 18, fontSize: "1.25em" }}>
