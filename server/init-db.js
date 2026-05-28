@@ -7,6 +7,10 @@ CREATE TABLE IF NOT EXISTS users (
     true_name TEXT NOT NULL,
     email VARCHAR(255) NOT NULL,
     profile_picture TEXT,
+    bio TEXT DEFAULT '',
+    status TEXT DEFAULT '',
+    banner TEXT DEFAULT '',
+    links TEXT DEFAULT '[]',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     last_activity TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     timeout TIMESTAMP DEFAULT NULL,
@@ -63,6 +67,11 @@ function initDb(callback) {
       console.error("DB init error:", err);
       if (callback) callback(err);
     } else {
+      // Migration: add new columns if they don't exist
+      db.run("ALTER TABLE users ADD COLUMN bio TEXT DEFAULT ''", () => {});
+      db.run("ALTER TABLE users ADD COLUMN status TEXT DEFAULT ''", () => {});
+      db.run("ALTER TABLE users ADD COLUMN banner TEXT DEFAULT ''", () => {});
+      db.run("ALTER TABLE users ADD COLUMN links TEXT DEFAULT '[]'", () => {});
       console.log("Database initialized (if needed)");
       if (callback) callback(null);
     }

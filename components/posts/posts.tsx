@@ -226,7 +226,7 @@ export default function Posts({
                 >
                   <img
                     src={
-                      serverAddress
+                      serverAddress && !mostLikedComment.profile_picture.startsWith("http")
                         ? `${serverAddress}${mostLikedComment.profile_picture}`
                         : mostLikedComment.profile_picture
                     }
@@ -297,7 +297,7 @@ export default function Posts({
                     >
                       <img
                         src={
-                          serverAddress
+                          serverAddress && !comment.profile_picture.startsWith("http")
                             ? `${serverAddress}${comment.profile_picture}`
                             : comment.profile_picture
                         }

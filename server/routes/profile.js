@@ -91,4 +91,47 @@ router.get("/profile/picture/:userId", async (req, res) => {
   }
 });
 
+// Multer setup for banners
+const bannerStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = path.join(__dirname, "../../public/images/banners");
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, `banner_${req.user.id}${ext}`);
+  },
+});
+const bannerUpload = multer({
+  storage: bannerStorage,
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowedTypes.includes(file.mimetype)) {
+      return cb(new Error("Only JPEG, PNG and WebP files are allowed"));
+    }
+    cb(null, true);
+  },
+  limits: { fileSize: 4 * 1024 * 1024 }, // 4MB
+});
+
+// Upload banner
+router.post(
+  "/profile/upload-banner",
+  authenticateToken,
+  bannerUpload.single("banner"),
+  async (req, res) => {
+    try {
+      const filePath = `/images/banners/banner_${req.user.id}${path.extname(req.file.originalname)}`;
+      await exec_sql("UPDATE users SET banner = ? WHERE id = ?", [filePath, req.user.id]);
+      res.json({
+        success: true,
+        filePath: `${SERVER_ADDRESS}${filePath}`,
+      });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to save banner" });
+    }
+  }
+);
+
 module.exports = router;

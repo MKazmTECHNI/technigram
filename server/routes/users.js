@@ -102,7 +102,7 @@ router.get("/by-username/:username", async (req, res) => {
   const username = req.params.username;
   try {
     const result = await return_sql(
-      `SELECT id, username, true_name, profile_picture, created_at FROM users WHERE username = ?`,
+      `SELECT id, username, true_name, profile_picture, bio, status, banner, links, permission, created_at FROM users WHERE username = ?`,
       [username]
     );
     if (result.length === 0) {
@@ -113,6 +113,10 @@ router.get("/by-username/:username", async (req, res) => {
       user.profile_picture && user.profile_picture !== ""
         ? `${SERVER_ADDRESS}${user.profile_picture}`
         : `${SERVER_ADDRESS}/images/profiles/default-profile.png`;
+    user.banner = user.banner && user.banner !== ""
+      ? user.banner.startsWith("http") ? user.banner : `${SERVER_ADDRESS}${user.banner}`
+      : "";
+    try { user.links = JSON.parse(user.links || "[]"); } catch { user.links = []; }
     res.json(user);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch user details" });
@@ -223,6 +227,27 @@ router.post("/changeUsername", authenticateToken, async (req, res) => {
     res.status(200).json({ message: "Username updated successfully" });
   } catch (err) {
     res.status(500).json({ error: "Failed to update username" });
+  }
+});
+
+// Update profile fields (bio, status, links)
+router.post("/update-profile", authenticateToken, async (req, res) => {
+  const userId = req.user.id;
+  const { bio, status, links } = req.body;
+
+  try {
+    if (bio !== undefined) {
+      await exec_sql("UPDATE users SET bio = ? WHERE id = ?", [bio, userId]);
+    }
+    if (status !== undefined) {
+      await exec_sql("UPDATE users SET status = ? WHERE id = ?", [status, userId]);
+    }
+    if (links !== undefined) {
+      await exec_sql("UPDATE users SET links = ? WHERE id = ?", [JSON.stringify(links), userId]);
+    }
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to update profile" });
   }
 });
 

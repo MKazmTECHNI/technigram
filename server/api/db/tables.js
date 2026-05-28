@@ -72,7 +72,6 @@ router.post('/:table', authenticateToken, async (req, res) => {
       return res.status(403).json({ error: perm.error || 'Permission denied' });
     }
     const entry = { ...req.body };
-    delete entry.token;
 
     const keys = Object.keys(entry);
     const placeholders = keys.map(() => '?').join(', ');
@@ -94,7 +93,7 @@ router.put('/:table/:id', authenticateToken, async (req, res) => {
     if (!(await validateTable(table))) {
       return res.status(400).json({ error: 'Invalid table name' });
     }
-    const { token, ...entry } = req.body;
+    const entry = { ...req.body };
     const id = req.headers['x-user-id'];
     const perm = await checkPermission(id, ['admin']);
     if (!perm.allowed) {
