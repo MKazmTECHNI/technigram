@@ -18,7 +18,12 @@ export default function Home() {
           <img src="/icons/google-icon.png" alt="" className="icon" />
           Continue with Google
         </Link>
-        <small>By continuing, you agree to our Terms and Privacy Policy</small>
+        <small>
+          By continuing, you agree to our{" "}
+          <Link href="/terms" style={{ color: "#c6a4ff", textDecoration: "underline" }}>Terms</Link>{" "}
+          and{" "}
+          <Link href="/cookies" style={{ color: "#c6a4ff", textDecoration: "underline" }}>Privacy Policy</Link>
+        </small>
       </div>
     </div>
   );

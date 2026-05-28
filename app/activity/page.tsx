@@ -10,17 +10,14 @@ export default function ActivityPage() {
   const router = useRouter();
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [likeLoading, setLikeLoading] = useState<{ [key: number]: boolean }>({});
   const [commentLikeLoading, setCommentLikeLoading] = useState<{ [key: number]: boolean }>({});
   const [commentInputs, setCommentInputs] = useState<{ [key: number]: string }>({});
   const [commentLoading, setCommentLoading] = useState<{ [key: number]: boolean }>({});
   const [commentError, setCommentError] = useState<{ [key: number]: string }>({});
 
-  const getCurrentUser = () => {
-    if (typeof window === "undefined") return null;
-    const data = localStorage.getItem("currentUser");
-    return data ? JSON.parse(data) : null;
-  };
+  const getCurrentUser = () => currentUser;
 
   const refreshComments = async (postId: number) => {
     try {
@@ -129,7 +126,10 @@ export default function ActivityPage() {
   };
 
   useEffect(() => {
-    const user = getCurrentUser();
+    const userData = localStorage.getItem("currentUser");
+    const user = userData ? JSON.parse(userData) : null;
+    setCurrentUser(user);
+
     if (!user) {
       router.replace("/login");
       return;

@@ -38,7 +38,8 @@ export default function Home() {
   const [error, setError] = useState("");
   const [hasMore, setHasMore] = useState(true);
   const [offset, setOffset] = useState(0);
-  const [feedMode, setFeedMode] = useState<"foryou" | "latest">("foryou");
+  const [feedMode, setFeedMode] = useState<"foryou" | "latest">("latest");
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const fetchedRef = useRef(false);
 
   const [likeLoading, setLikeLoading] = useState<{ [key: number]: boolean }>(
@@ -57,11 +58,10 @@ export default function Home() {
     {},
   );
 
-  const getCurrentUser = () => {
-    if (typeof window === "undefined") return null;
-    const data = localStorage.getItem("currentUser");
-    return data ? JSON.parse(data) : null;
-  };
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [mounted, setMounted] = useState(false);
+
+  const getCurrentUser = () => currentUser;
 
   const refreshComments = async (postId: number) => {
     try {
@@ -214,9 +214,8 @@ export default function Home() {
     }
   };
 
-  const fetchPosts = useCallback(async (currentOffset: number, mode?: "foryou" | "latest") => {
-    const activeMode = mode || feedMode;
-    const user = getCurrentUser();
+  const fetchPosts = useCallback(async (currentOffset: number, opts?: { mode?: "foryou" | "latest"; token?: string }) => {
+    const activeMode = opts?.mode || feedMode;
     const isInitial = currentOffset === 0;
 
     if (isInitial) {
@@ -226,16 +225,18 @@ export default function Home() {
     }
 
     try {
+      const user = getCurrentUser();
+      const token = opts?.token || (user ? user.token : null);
       let endpoint: string;
-      if (activeMode === "foryou" && user) {
+      if (activeMode === "foryou" && token) {
         endpoint = `${serverAddress}/feed/foryou?offset=${currentOffset}&limit=${POSTS_PER_PAGE}`;
       } else {
         endpoint = `${serverAddress}/feed/latest?offset=${currentOffset}&limit=${POSTS_PER_PAGE}`;
       }
 
       const headers: Record<string, string> = {};
-      if (user) {
-        headers["Authorization"] = `Bearer ${user.token}`;
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
       }
 
       const res = await fetch(endpoint, { headers });
@@ -260,10 +261,17 @@ export default function Home() {
   useEffect(() => {
     if (fetchedRef.current) return;
     fetchedRef.current = true;
-    const user = getCurrentUser();
+
+    // Hydration-safe user check
+    const userData = localStorage.getItem("currentUser");
+    const user = userData ? JSON.parse(userData) : null;
+    setCurrentUser(user);
+    setMounted(true);
+    setShowLoginPrompt(!user);
+
     const mode = user ? "foryou" : "latest";
     setFeedMode(mode);
-    fetchPosts(0, mode);
+    fetchPosts(0, { mode, token: user?.token });
   }, [fetchPosts]);
 
   // Infinite scroll
@@ -273,7 +281,8 @@ export default function Home() {
       const scrollBottom = window.innerHeight + window.scrollY;
       const threshold = document.body.offsetHeight - 400;
       if (scrollBottom >= threshold) {
-        fetchPosts(offset);
+        const token = currentUser?.token;
+        fetchPosts(offset, { token });
       }
     };
     window.addEventListener("scroll", handleScroll);
@@ -282,7 +291,7 @@ export default function Home() {
 
   return (
     <>
-      {!getCurrentUser() && (
+      {showLoginPrompt && (
         <div style={{ textAlign: "center", margin: "16px 0", color: "#c6a4ff" }}>
           <Link href="/login" style={{ color: "#c6a4ff", fontWeight: "bold" }}>
             Log in

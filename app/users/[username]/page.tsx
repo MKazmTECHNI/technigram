@@ -63,19 +63,16 @@ export default function UserProfilePage() {
   const [commentError, setCommentError] = useState<{ [key: number]: string }>(
     {},
   );
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [modalImage, setModalImage] = useState<string | null>(null);
   const [openComments, setOpenComments] = useState<{ [key: number]: boolean }>(
     {},
   );
 
-  // Helper to check if user is logged in
-  const getCurrentUser = () => {
-    if (typeof window === "undefined") return null;
-    const data = localStorage.getItem("currentUser");
-    return data ? JSON.parse(data) : null;
-  };
+  const getCurrentUser = () => currentUser;
 
   // Refresh comments for a single post after adding a comment
   const refreshComments = async (postId: number) => {
@@ -211,6 +208,14 @@ export default function UserProfilePage() {
 
   useEffect(() => {
     if (!username) return;
+
+    setMounted(true);
+
+    // Hydration-safe user load
+    const userData = localStorage.getItem("currentUser");
+    const user = userData ? JSON.parse(userData) : null;
+    setCurrentUser(user);
+
     async function fetchProfile() {
       try {
         const res = await fetch(
@@ -224,7 +229,6 @@ export default function UserProfilePage() {
         setProfile(data);
 
         // Check follow status
-        const user = getCurrentUser();
         if (user && data.id) {
           try {
             const followRes = await fetch(
@@ -247,13 +251,12 @@ export default function UserProfilePage() {
   }, [username]);
 
   const handleFollow = async () => {
-    const user = getCurrentUser();
-    if (!user || !profile) return;
+    if (!currentUser || !profile) return;
     setFollowLoading(true);
     try {
       const res = await fetch(`${serverAddress}/social/follow/${profile.id}`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${user.token}` },
+        headers: { Authorization: `Bearer ${currentUser.token}` },
       });
       if (res.ok) {
         const data = await res.json();
@@ -337,7 +340,7 @@ export default function UserProfilePage() {
             })}
           </div>
         )}
-        {getCurrentUser() && Number(getCurrentUser().id) !== profile.id && (
+        {mounted && currentUser && Number(currentUser.id) !== profile.id && (
           <button
             onClick={handleFollow}
             disabled={followLoading}
