@@ -27,7 +27,7 @@ router.get("/by-username/:username", async (req, res) => {
   const username = req.params.username;
   try {
     const result = await return_sql(
-      `SELECT username, true_name, profile_picture, created_at FROM users WHERE username = ?`,
+      `SELECT id, username, true_name, profile_picture, created_at FROM users WHERE username = ?`,
       [username]
     );
     if (result.length === 0) {

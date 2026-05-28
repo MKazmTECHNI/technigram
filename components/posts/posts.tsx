@@ -7,6 +7,7 @@ type Comment = {
   username: string;
   profile_picture: string;
   likes?: number;
+  isLiked?: boolean;
 };
 
 type Post = {
@@ -19,6 +20,7 @@ type Post = {
   date: string;
   image?: string | null;
   comments: Comment[];
+  isLiked?: boolean;
 };
 
 interface PostsProps {
@@ -176,7 +178,7 @@ export default function Posts({
             )}
             <div className="post-stats-container">
               <img
-                src="../icons/heart-icon.svg"
+                src={post.isLiked ? "../icons/heart-icon-filled.svg" : "../icons/heart-icon.svg"}
                 alt=""
                 className={`heart-icon icon${
                   getCurrentUser && getCurrentUser()
@@ -274,7 +276,7 @@ export default function Posts({
                       : "Login to like"
                   }
                 >
-                  {mostLikedComment.likes ?? 0} likes
+                  {mostLikedComment.isLiked ? "♥" : "♡"} {mostLikedComment.likes ?? 0}
                 </span>
                 <div className="comment-content">
                   {mostLikedComment.comment_content}
@@ -343,7 +345,7 @@ export default function Posts({
                           : "Login to like"
                       }
                     >
-                      {comment.likes ?? 0} likes
+                      {comment.isLiked ? "♥" : "♡"} {comment.likes ?? 0}
                     </span>
                     <div className="comment-content">
                       {comment.comment_content}

@@ -1,18 +1,164 @@
 const express = require("express");
+const jwt = require("jsonwebtoken");
 const { return_sql } = require("../utils/dbUtils");
-const { authenticateToken } = require("../middleware/auth");
 
 const router = express.Router();
 const SERVER_ADDRESS = process.env.SERVER_ADDRESS;
 
+// Add isLiked status to posts and comments for a given user
+async function attachLikeStatus(posts, commentsMap, userId) {
+  if (!userId) return { posts, commentsMap };
+
+  const postIds = posts.map(p => p.post_id);
+  let likedPostIds = [];
+  let likedCommentIds = [];
+
+  if (postIds.length > 0) {
+    const placeholders = postIds.map(() => '?').join(',');
+    const likedPosts = await return_sql(
+      `SELECT post_id FROM post_likes WHERE user_id = ? AND post_id IN (${placeholders})`,
+      [userId, ...postIds]
+    );
+    likedPostIds = new Set(likedPosts.map(l => l.post_id));
+
+    const allCommentIds = Object.values(commentsMap).flat().map(c => c.comment_id);
+    if (allCommentIds.length > 0) {
+      const cPlaceholders = allCommentIds.map(() => '?').join(',');
+      const likedComments = await return_sql(
+        `SELECT comment_id FROM comment_likes WHERE user_id = ? AND comment_id IN (${cPlaceholders})`,
+        [userId, ...allCommentIds]
+      );
+      likedCommentIds = new Set(likedComments.map(l => l.comment_id));
+    }
+  }
+
+  const enrichedPosts = posts.map(p => ({
+    ...p,
+    isLiked: likedPostIds.has(p.post_id),
+  }));
+
+  const enrichedComments = {};
+  for (const [pid, list] of Object.entries(commentsMap)) {
+    enrichedComments[pid] = list.map(c => ({
+      ...c,
+      isLiked: likedCommentIds.has(c.comment_id),
+    }));
+  }
+
+  return { posts: enrichedPosts, commentsMap: enrichedComments };
+}
+
+// Shared: build post response with comments
+async function buildPostResponse(posts, userId) {
+  const postIds = posts.map(p => p.post_id);
+  let commentsMap = {};
+  if (postIds.length > 0) {
+    const placeholders = postIds.map(() => '?').join(',');
+    const comments = await return_sql(`
+      SELECT c.comment_id, c.comment_creator_id, c.post_id, c.comment_content, c.likes,
+             u.username, u.profile_picture
+      FROM comments c
+      JOIN users u ON c.comment_creator_id = u.id
+      WHERE c.post_id IN (${placeholders})
+    `, postIds);
+
+    for (const comment of comments) {
+      if (!commentsMap[comment.post_id]) commentsMap[comment.post_id] = [];
+      let profilePicUrl;
+      if (comment.profile_picture && comment.profile_picture !== "") {
+        if (comment.profile_picture.startsWith("http")) {
+          profilePicUrl = comment.profile_picture;
+        } else {
+          profilePicUrl = `${SERVER_ADDRESS}${comment.profile_picture}`;
+        }
+      } else {
+        profilePicUrl = `${SERVER_ADDRESS}/images/profiles/default-profile.png`;
+      }
+      commentsMap[comment.post_id].push({
+        comment_id: comment.comment_id,
+        comment_content: comment.comment_content,
+        likes: comment.likes || 0,
+        username: comment.username,
+        profile_picture: profilePicUrl,
+      });
+    }
+  }
+
+  // Attach like status if userId available
+  const enriched = await attachLikeStatus(posts, commentsMap, userId);
+
+  return enriched.posts.map(post => {
+    const profilePictureUrl =
+      post.profile_picture && post.profile_picture !== ""
+        ? post.profile_picture.startsWith("http")
+          ? post.profile_picture
+          : `${SERVER_ADDRESS}${post.profile_picture}`
+        : `${SERVER_ADDRESS}/images/profiles/default-profile.png`;
+
+    const imageUrl = post.image && post.image !== "" ? `${SERVER_ADDRESS}${post.image}` : null;
+
+    return {
+      post_id: post.post_id,
+      content: post.content,
+      creatorUsername: post.username,
+      trueName: post.true_name,
+      creatorProfilePicture: profilePictureUrl,
+      likes: post.likes || 0,
+      date: post.created_at,
+      image: imageUrl,
+      comments: enriched.commentsMap[post.post_id] || [],
+      isLiked: post.isLiked,
+    };
+  });
+}
+
+// Latest chronological feed
+async function getLatestFeed(limit, offset, userId) {
+  const posts = await return_sql(`
+    SELECT p.post_id, p.content, p.creator_id, p.created_at, p.likes, p.image,
+           u.username, u.true_name, u.profile_picture
+    FROM posts p
+    JOIN users u ON p.creator_id = u.id
+    ORDER BY p.created_at DESC
+    LIMIT ? OFFSET ?
+  `, [limit, offset]);
+
+  const totalResult = await return_sql("SELECT COUNT(*) AS count FROM posts");
+  const total = totalResult[0].count;
+  const formattedPosts = await buildPostResponse(posts, userId);
+
+  return { posts: formattedPosts, total, offset, limit };
+}
+
+// Extract userId from request (optional auth, with DB fallback)
+async function getUserId(req) {
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.split(" ")[1];
+  if (!token) return null;
+  try {
+    return jwt.verify(token, process.env.APP_SECRET).id;
+  } catch {
+    try {
+      const users = await return_sql("SELECT id FROM users WHERE token = ?", [token]);
+      if (users.length) return users[0].id;
+    } catch {}
+  }
+  return null;
+}
+
 // ForYouPage feed algorithm
-router.get("/foryou", authenticateToken, async (req, res) => {
-  const userId = req.user.id;
+router.get("/foryou", async (req, res) => {
+  const userId = await getUserId(req);
   const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 10));
   const offset = Math.max(0, parseInt(req.query.offset) || 0);
 
+  if (!userId) {
+    const result = await getLatestFeed(limit, offset, null);
+    return res.json(result);
+  }
+
   try {
-    // 1. Get user's tag interests (from posts they liked)
+    // Get user's tag interests (from posts they liked)
     const interestTags = await return_sql(`
       SELECT DISTINCT t.tag_id, t.name, COUNT(*) AS score
       FROM post_likes pl
@@ -25,16 +171,14 @@ router.get("/foryou", authenticateToken, async (req, res) => {
 
     const tagIds = interestTags.map(t => t.tag_id);
 
-    // 2. Get users the current user follows
+    // Get users the current user follows
     const followedUsers = await return_sql(
       "SELECT following_id FROM follows WHERE follower_id = ?",
       [userId]
     );
     const followedIds = followedUsers.map(u => u.following_id);
 
-    // 3. Fetch candidate posts with scoring
-    const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-
+    // Fetch candidate posts with scoring
     let posts = await return_sql(`
       SELECT p.post_id, p.content, p.creator_id, p.created_at, p.likes, p.image,
              u.username, u.true_name, u.profile_picture,
@@ -51,97 +195,35 @@ router.get("/foryou", authenticateToken, async (req, res) => {
     const scored = posts.map(post => {
       let score = 0;
 
-      // Recency bonus: newer posts score higher
       const ageHours = (Date.now() - new Date(post.created_at).getTime()) / (1000 * 60 * 60);
       score += Math.max(0, 100 - ageHours * 2);
 
-      // Popularity bonus
       score += (post.likes || 0) * 10;
       score += (post.view_count || 0) * 2;
 
-      // Followed user bonus
       if (followedIds.includes(post.creator_id)) {
         score += 200;
       }
 
-      // Interest tag matching bonus
       if (tagIds.length > 0) {
-        // This is simplified — in production you'd batch this
-        score += 50; // placeholder for tag match
+        score += 50;
       }
 
-      // Random discovery factor (±20%)
       score *= (0.8 + Math.random() * 0.4);
 
       return { ...post, score };
     });
 
-    // Sort by score descending
     scored.sort((a, b) => b.score - a.score);
 
-    // Paginate
     const total = scored.length;
     const pagePosts = scored.slice(offset, offset + limit);
+    const formattedPosts = await buildPostResponse(pagePosts);
 
-    // Fetch comments for all returned posts
-    const postIds = pagePosts.map(p => p.post_id);
-    let commentsMap = {};
-    if (postIds.length > 0) {
-      const placeholders = postIds.map(() => '?').join(',');
-      const comments = await return_sql(`
-        SELECT c.comment_id, c.comment_creator_id, c.post_id, c.comment_content, c.likes,
-               u.username, u.profile_picture
-        FROM comments c
-        JOIN users u ON c.comment_creator_id = u.id
-        WHERE c.post_id IN (${placeholders})
-      `, postIds);
-
-      for (const comment of comments) {
-        if (!commentsMap[comment.post_id]) commentsMap[comment.post_id] = [];
-        let profilePicUrl;
-        if (comment.profile_picture && comment.profile_picture !== "") {
-          if (comment.profile_picture.startsWith("http")) {
-            profilePicUrl = comment.profile_picture;
-          } else {
-            profilePicUrl = `${SERVER_ADDRESS}${comment.profile_picture}`;
-          }
-        } else {
-          profilePicUrl = `${SERVER_ADDRESS}/images/profiles/default-profile.png`;
-        }
-        commentsMap[comment.post_id].push({
-          comment_id: comment.comment_id,
-          comment_content: comment.comment_content,
-          likes: comment.likes || 0,
-          username: comment.username,
-          profile_picture: profilePicUrl,
-        });
-      }
-    }
-
-    // Format response
-    const result = pagePosts.map(post => {
-      const profilePictureUrl =
-        post.profile_picture && post.profile_picture !== ""
-          ? post.profile_picture.startsWith("http")
-            ? post.profile_picture
-            : `${SERVER_ADDRESS}${post.profile_picture}`
-          : `${SERVER_ADDRESS}/images/profiles/default-profile.png`;
-
-      const imageUrl = post.image && post.image !== "" ? `${SERVER_ADDRESS}${post.image}` : null;
-
-      return {
-        post_id: post.post_id,
-        content: post.content,
-        creatorUsername: post.username,
-        trueName: post.true_name,
-        creatorProfilePicture: profilePictureUrl,
-        likes: post.likes || 0,
-        date: post.created_at,
-        image: imageUrl,
-        comments: commentsMap[post.post_id] || [],
-        score: Math.round(post.score * 100) / 100,
-      };
-    });
+    const result = formattedPosts.map((p, i) => ({
+      ...p,
+      score: Math.round(pagePosts[i].score * 100) / 100,
+    }));
 
     res.json({
       posts: result,
@@ -160,83 +242,15 @@ router.get("/foryou", authenticateToken, async (req, res) => {
   }
 });
 
-// Simple "latest" feed (for logged-out users / fallback)
+// Latest feed (for logged-out users / fallback)
 router.get("/latest", async (req, res) => {
+  const userId = await getUserId(req);
   const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 10));
   const offset = Math.max(0, parseInt(req.query.offset) || 0);
 
   try {
-    const posts = await return_sql(`
-      SELECT p.post_id, p.content, p.creator_id, p.created_at, p.likes, p.image,
-             u.username, u.true_name, u.profile_picture
-      FROM posts p
-      JOIN users u ON p.creator_id = u.id
-      ORDER BY p.created_at DESC
-      LIMIT ? OFFSET ?
-    `, [limit, offset]);
-
-    const totalResult = await return_sql("SELECT COUNT(*) AS count FROM posts");
-    const total = totalResult[0].count;
-
-    // Fetch comments for all posts in batch
-    const postIds = posts.map(p => p.post_id);
-    let commentsMap = {};
-    if (postIds.length > 0) {
-      const placeholders = postIds.map(() => '?').join(',');
-      const comments = await return_sql(`
-        SELECT c.comment_id, c.comment_creator_id, c.post_id, c.comment_content, c.likes,
-               u.username, u.profile_picture
-        FROM comments c
-        JOIN users u ON c.comment_creator_id = u.id
-        WHERE c.post_id IN (${placeholders})
-      `, postIds);
-
-      for (const comment of comments) {
-        if (!commentsMap[comment.post_id]) commentsMap[comment.post_id] = [];
-        let profilePicUrl;
-        if (comment.profile_picture && comment.profile_picture !== "") {
-          if (comment.profile_picture.startsWith("http")) {
-            profilePicUrl = comment.profile_picture;
-          } else {
-            profilePicUrl = `${SERVER_ADDRESS}${comment.profile_picture}`;
-          }
-        } else {
-          profilePicUrl = `${SERVER_ADDRESS}/images/profiles/default-profile.png`;
-        }
-        commentsMap[comment.post_id].push({
-          comment_id: comment.comment_id,
-          comment_content: comment.comment_content,
-          likes: comment.likes || 0,
-          username: comment.username,
-          profile_picture: profilePicUrl,
-        });
-      }
-    }
-
-    const result = posts.map(post => {
-      const profilePictureUrl =
-        post.profile_picture && post.profile_picture !== ""
-          ? post.profile_picture.startsWith("http")
-            ? post.profile_picture
-            : `${SERVER_ADDRESS}${post.profile_picture}`
-          : `${SERVER_ADDRESS}/images/profiles/default-profile.png`;
-
-      const imageUrl = post.image && post.image !== "" ? `${SERVER_ADDRESS}${post.image}` : null;
-
-      return {
-        post_id: post.post_id,
-        content: post.content,
-        creatorUsername: post.username,
-        trueName: post.true_name,
-        creatorProfilePicture: profilePictureUrl,
-        likes: post.likes || 0,
-        date: post.created_at,
-        image: imageUrl,
-        comments: commentsMap[post.post_id] || [],
-      };
-    });
-
-    res.json({ posts: result, total, offset, limit });
+    const result = await getLatestFeed(limit, offset, userId);
+    res.json(result);
   } catch (err) {
     console.error("Error in /latest feed:", err);
     res.status(500).json({ error: "Failed to fetch feed" });

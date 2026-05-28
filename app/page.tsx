@@ -13,6 +13,7 @@ type Comment = {
   username: string;
   profile_picture: string;
   likes?: number;
+  isLiked?: boolean;
 };
 
 type Post = {
@@ -25,6 +26,7 @@ type Post = {
   date: string;
   image?: string | null;
   comments: Comment[];
+  isLiked?: boolean;
 };
 
 const POSTS_PER_PAGE = 10;
@@ -77,6 +79,16 @@ export default function Home() {
   const handlePostLike = async (postId: number) => {
     const user = getCurrentUser();
     if (!user) return;
+
+    // Optimistic toggle
+    setPosts((prev) =>
+      prev.map((p) =>
+        p.post_id === postId
+          ? { ...p, isLiked: !p.isLiked, likes: p.isLiked ? p.likes - 1 : p.likes + 1 }
+          : p,
+      ),
+    );
+
     setLikeLoading((prev) => ({ ...prev, [postId]: true }));
     try {
       const res = await fetch(`${serverAddress}/posts/${postId}/like`, {
@@ -93,6 +105,14 @@ export default function Home() {
           ),
         );
       } else {
+        // Revert on error
+        setPosts((prev) =>
+          prev.map((p) =>
+            p.post_id === postId
+              ? { ...p, isLiked: !p.isLiked, likes: p.isLiked ? p.likes - 1 : p.likes + 1 }
+              : p,
+          ),
+        );
         const err = await res.json();
         if (err.muted) {
           alert(
@@ -111,6 +131,27 @@ export default function Home() {
   const handleCommentLike = async (commentId: number, postId: number) => {
     const user = getCurrentUser();
     if (!user) return;
+
+    // Optimistic toggle
+    setPosts((prev) =>
+      prev.map((p) =>
+        p.post_id === postId
+          ? {
+              ...p,
+              comments: p.comments.map((c: any) =>
+                c.comment_id === commentId
+                  ? {
+                      ...c,
+                      isLiked: !c.isLiked,
+                      likes: c.isLiked ? (c.likes || 1) - 1 : (c.likes || 0) + 1,
+                    }
+                  : c,
+              ),
+            }
+          : p,
+      ),
+    );
+
     setCommentLikeLoading((prev) => ({ ...prev, [commentId]: true }));
     try {
       const res = await fetch(
@@ -139,6 +180,25 @@ export default function Home() {
           ),
         );
       } else {
+        // Revert on error
+        setPosts((prev) =>
+          prev.map((p) =>
+            p.post_id === postId
+              ? {
+                  ...p,
+                  comments: p.comments.map((c: any) =>
+                    c.comment_id === commentId
+                      ? {
+                          ...c,
+                          isLiked: !c.isLiked,
+                          likes: c.isLiked ? (c.likes || 1) - 1 : (c.likes || 0) + 1,
+                        }
+                      : c,
+                  ),
+                }
+              : p,
+          ),
+        );
         const err = await res.json();
         if (err.muted) {
           alert(

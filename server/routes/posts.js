@@ -95,7 +95,6 @@ router.get("/", async (req, res) => {
         JOIN users u ON c.comment_creator_id = u.id
         WHERE c.post_id IN (${placeholders})`, postIds);
 
-      // Group comments by post_id
       for (const comment of comments) {
         if (!commentsMap[comment.post_id]) commentsMap[comment.post_id] = [];
         let profilePicUrl;
@@ -118,6 +117,42 @@ router.get("/", async (req, res) => {
       }
     }
 
+    // Check liked status if user is authenticated
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(" ")[1];
+    let userId = null;
+    if (token) {
+      try {
+        userId = require("jsonwebtoken").verify(token, process.env.APP_SECRET).id;
+      } catch {
+        try {
+          const users = await return_sql("SELECT id FROM users WHERE token = ?", [token]);
+          if (users.length) userId = users[0].id;
+        } catch {}
+      }
+    }
+
+    let likedPostIds = new Set();
+    let likedCommentIds = new Set();
+    if (userId && postIds.length > 0) {
+      const pPlaceholders = postIds.map(() => '?').join(',');
+      const likedPosts = await return_sql(
+        `SELECT post_id FROM post_likes WHERE user_id = ? AND post_id IN (${pPlaceholders})`,
+        [userId, ...postIds]
+      );
+      likedPostIds = new Set(likedPosts.map(l => l.post_id));
+
+      const allCommentIds = Object.values(commentsMap).flat().map(c => c.comment_id);
+      if (allCommentIds.length > 0) {
+        const cPlaceholders = allCommentIds.map(() => '?').join(',');
+        const likedComments = await return_sql(
+          `SELECT comment_id FROM comment_likes WHERE user_id = ? AND comment_id IN (${cPlaceholders})`,
+          [userId, ...allCommentIds]
+        );
+        likedCommentIds = new Set(likedComments.map(l => l.comment_id));
+      }
+    }
+
     const result = posts.map(post => {
       const profilePictureUrl =
         post.profile_picture && post.profile_picture !== ""
@@ -128,6 +163,11 @@ router.get("/", async (req, res) => {
 
       const imageUrl = post.image && post.image !== "" ? `${SERVER_ADDRESS}${post.image}` : null;
 
+      const enrichedComments = (commentsMap[post.post_id] || []).map(c => ({
+        ...c,
+        isLiked: likedCommentIds.has(c.comment_id),
+      }));
+
       return {
         post_id: post.post_id,
         content: post.content,
@@ -137,7 +177,8 @@ router.get("/", async (req, res) => {
         likes: post.likes || 0,
         date: post.created_at,
         image: imageUrl,
-        comments: commentsMap[post.post_id] || [],
+        comments: enrichedComments,
+        isLiked: likedPostIds.has(post.post_id),
       };
     });
 

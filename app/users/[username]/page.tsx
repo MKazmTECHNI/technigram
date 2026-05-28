@@ -13,6 +13,7 @@ type Comment = {
   username: string;
   profile_picture: string;
   likes?: number;
+  isLiked?: boolean;
 };
 
 type Post = {
@@ -25,9 +26,11 @@ type Post = {
   creatorUsername: string;
   trueName: string;
   creatorProfilePicture: string;
+  isLiked?: boolean;
 };
 
 type UserProfile = {
+  id: number;
   username: string;
   true_name?: string;
   profile_picture?: string;
@@ -90,6 +93,15 @@ export default function UserProfilePage() {
   const handlePostLike = async (postId: number) => {
     const user = getCurrentUser();
     if (!user) return;
+
+    setPosts((prev) =>
+      prev.map((p) =>
+        p.post_id === postId
+          ? { ...p, isLiked: !p.isLiked, likes: p.isLiked ? p.likes - 1 : p.likes + 1 }
+          : p,
+      ),
+    );
+
     setLikeLoading((prev) => ({ ...prev, [postId]: true }));
     try {
       const res = await fetch(`${serverAddress}/posts/${postId}/like`, {
@@ -105,6 +117,14 @@ export default function UserProfilePage() {
             p.post_id === postId ? { ...p, likes: data.likes } : p,
           ),
         );
+      } else {
+        setPosts((prev) =>
+          prev.map((p) =>
+            p.post_id === postId
+              ? { ...p, isLiked: !p.isLiked, likes: p.isLiked ? p.likes - 1 : p.likes + 1 }
+              : p,
+          ),
+        );
       }
     } finally {
       setLikeLoading((prev) => ({ ...prev, [postId]: false }));
@@ -115,6 +135,26 @@ export default function UserProfilePage() {
   const handleCommentLike = async (commentId: number, postId: number) => {
     const user = getCurrentUser();
     if (!user) return;
+
+    setPosts((prev) =>
+      prev.map((p) =>
+        p.post_id === postId
+          ? {
+              ...p,
+              comments: p.comments.map((c: any) =>
+                c.comment_id === commentId
+                  ? {
+                      ...c,
+                      isLiked: !c.isLiked,
+                      likes: c.isLiked ? (c.likes || 1) - 1 : (c.likes || 0) + 1,
+                    }
+                  : c,
+              ),
+            }
+          : p,
+      ),
+    );
+
     setCommentLikeLoading((prev) => ({ ...prev, [commentId]: true }));
     try {
       const res = await fetch(
@@ -136,6 +176,25 @@ export default function UserProfilePage() {
                   comments: p.comments.map((c: any) =>
                     c.comment_id === commentId
                       ? { ...c, likes: data.likes }
+                      : c,
+                  ),
+                }
+              : p,
+          ),
+        );
+      } else {
+        setPosts((prev) =>
+          prev.map((p) =>
+            p.post_id === postId
+              ? {
+                  ...p,
+                  comments: p.comments.map((c: any) =>
+                    c.comment_id === commentId
+                      ? {
+                          ...c,
+                          isLiked: !c.isLiked,
+                          likes: c.isLiked ? (c.likes || 1) - 1 : (c.likes || 0) + 1,
+                        }
                       : c,
                   ),
                 }
