@@ -33,19 +33,19 @@ export default function Home() {
   const fetchedRef = useRef(false); // Prevent double fetch
 
   const [likeLoading, setLikeLoading] = useState<{ [key: number]: boolean }>(
-    {}
+    {},
   );
   const [commentLikeLoading, setCommentLikeLoading] = useState<{
     [key: number]: boolean;
   }>({});
   const [commentInputs, setCommentInputs] = useState<{ [key: number]: string }>(
-    {}
+    {},
   );
   const [commentLoading, setCommentLoading] = useState<{
     [key: number]: boolean;
   }>({});
   const [commentError, setCommentError] = useState<{ [key: number]: string }>(
-    {}
+    {},
   );
 
   // Helper to check if user is logged in
@@ -63,8 +63,8 @@ export default function Home() {
       const updatedPost = await response.json();
       setPosts((prev) =>
         prev.map((p) =>
-          p.post_id === postId ? { ...p, comments: updatedPost.comments } : p
-        )
+          p.post_id === postId ? { ...p, comments: updatedPost.comments } : p,
+        ),
       );
     } catch {}
   };
@@ -85,15 +85,17 @@ export default function Home() {
         const data = await res.json();
         setPosts((prev) =>
           prev.map((p) =>
-            p.post_id === postId ? { ...p, likes: data.likes } : p
-          )
+            p.post_id === postId ? { ...p, likes: data.likes } : p,
+          ),
         );
       } else {
         const err = await res.json();
         if (err.muted) {
           alert(
             err.error +
-              (err.retryAfter ? ` Try again in ${err.retryAfter} seconds.` : "")
+              (err.retryAfter
+                ? ` Try again in ${err.retryAfter} seconds.`
+                : ""),
           );
         }
       }
@@ -115,7 +117,7 @@ export default function Home() {
           headers: {
             Authorization: `Bearer ${user.token}`,
           },
-        }
+        },
       );
       if (res.ok) {
         const data = await res.json();
@@ -125,18 +127,22 @@ export default function Home() {
               ? {
                   ...p,
                   comments: p.comments.map((c: any) =>
-                    c.comment_id === commentId ? { ...c, likes: data.likes } : c
+                    c.comment_id === commentId
+                      ? { ...c, likes: data.likes }
+                      : c,
                   ),
                 }
-              : p
-          )
+              : p,
+          ),
         );
       } else {
         const err = await res.json();
         if (err.muted) {
           alert(
             err.error +
-              (err.retryAfter ? ` Try again in ${err.retryAfter} seconds.` : "")
+              (err.retryAfter
+                ? ` Try again in ${err.retryAfter} seconds.`
+                : ""),
           );
         }
       }
@@ -174,7 +180,9 @@ export default function Home() {
         if (err.muted) {
           alert(
             err.error +
-              (err.retryAfter ? ` Try again in ${err.retryAfter} seconds.` : "")
+              (err.retryAfter
+                ? ` Try again in ${err.retryAfter} seconds.`
+                : ""),
           );
         } else {
           alert(err.error || "Failed to add post");

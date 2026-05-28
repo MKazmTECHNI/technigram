@@ -1,0 +1,73 @@
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 21px;
+}
+
+.parent-container {
+  /* max-width: 400px; */
+  margin: 48px auto;
+  background: #181818;
+  border-radius: 16px;
+  color: #fff;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 21px;
+}
+
+.report-title {
+  color: #c6a4ff;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+input,
+textarea,
+select {
+  padding: 10px;
+  font-size: 1rem;
+  background-color: #101010;
+  color: #fff;
+  border: 1px solid #555;
+  border-radius: 10px;
+  outline: none;
+  width: 100%;
+  margin-top: 4px;
+}
+
+select {
+  padding: 5px 10px;
+  border: 1px solid gray;
+}
+
+textarea {
+  min-height: 80px;
+}
+
+.report-submit-btn {
+  background: #c6a4ff;
+  color: #181818;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 0;
+  font-weight: 600;
+  font-size: 1.1em;
+  letter-spacing: 1px;
+}
+
+.report-status {
+  margin-top: 8px;
+}
+
+.report-status-success {
+  color: #7fff7f;
+}
+
+.report-status-error {
+  color: #ff7f7f;
+}

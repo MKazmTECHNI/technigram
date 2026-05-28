@@ -3,19 +3,12 @@ const path = require("path");
 const cors = require("cors");
 const session = require("express-session");
 const passport = require("passport");
-const https = require("https");
-const fs = require("fs");
 require("dotenv").config();
 
 const { initDb } = require("./init-db");
 
 const app = express();
-const port = 5000;
-
-const httpsOptions = {
-  key: fs.readFileSync(path.join(__dirname, "ssl/privkey.pem")),
-  cert: fs.readFileSync(path.join(__dirname, "ssl/fullchain.pem")),
-};
+const port = process.env.MOCK_PORT || 777;
 
 app.use(cors());
 app.use(express.json());
@@ -46,21 +39,6 @@ const reportRouter = require("./routes/report");
 const dbTablesApi = require("./api/db/tables");
 const checkPermissionApi = require("./api/db/checkPermission");
 
-// ADMIN PANEL ENDPOINTS (DISABLED FOR PROD)
-// const getTables = require("./api/db/tables");
-// const getTableData = require("./api/db/tableData");
-// const addTableEntry = require("./api/db/addEntry");
-// const createTable = require("./api/db/createTable");
-// const getTableColumns = require("./api/db/tableColumns");
-// const alterTable = require("./api/db/alterTable");
-// app.get("/api/db/tables", getTables);
-// app.get("/api/db/table/:table", getTableData);
-// app.get("/api/db/table/:table/columns", getTableColumns);
-// app.post("/api/db/table/:table", addTableEntry);
-// app.post("/api/db/createTable", createTable);
-// app.post("/api/db/alterTable", alterTable);
-// Yes I'll finally get around to making a proper admin panel
-
 // Use routes
 app.use(authRoutes);
 app.use("/posts", postsRoutes);
@@ -85,7 +63,8 @@ initDb((err) => {
     console.error("Failed to initialize database:", err);
     process.exit(1);
   }
-  https.createServer(httpsOptions, app).listen(port, () => {
-    console.log(`HTTPS server is running at ${port}`);
+
+  app.listen(port, () => {
+    console.log(`Mock HTTP server is running at ${port}`);
   });
 });

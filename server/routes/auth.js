@@ -3,14 +3,14 @@ const passport = require("passport");
 
 const router = express.Router();
 
-const serverAddress = process.env.NEXT_PUBLIC_SERVER_ADDRESS;
+const serverAddress = process.env.SERVER_ADDRESS;
 
 router.get(
   "/auth/google",
   passport.authenticate("google", {
     scope: ["profile", "email"],
-    prompt: "select_account"
-  })
+    prompt: "select_account",
+  }),
 );
 
 router.get(
@@ -25,7 +25,7 @@ router.get(
       token: req.user.token,
     }).toString();
     res.redirect(`${serverAddress}/login/callback?${params}`);
-  }
+  },
 );
 
 module.exports = router;

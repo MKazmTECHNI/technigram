@@ -50,10 +50,8 @@ help.txt
 # so no need to commit it
 
 execute_sql.js
-.db
+*.db
 
-/public/images/
-
-
+/public/images/*
 
 /node_modules/

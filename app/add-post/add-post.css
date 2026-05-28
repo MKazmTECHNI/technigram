@@ -30,47 +30,47 @@
   flex-direction: column;
   gap: 20px;
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+  margin-top: 100px;
   h1 {
     color: #c6a4ff;
   }
-}
+  label {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #ccc;
+  }
 
-label {
-  font-size: 1.2rem;
-  font-weight: bold;
-  color: #ccc;
-}
+  input[type="text"],
+  textarea {
+    padding: 10px;
+    font-size: 1rem;
+    background-color: #101010;
+    color: #fff;
+    border: 1px solid #555;
+    border-radius: 10px;
+    outline: none;
+  }
 
-input[type="text"],
-textarea {
-  padding: 10px;
-  font-size: 1rem;
-  background-color: #101010;
-  color: #fff;
-  border: 1px solid #555;
-  border-radius: 10px;
-  outline: none;
-}
+  textarea {
+    min-height: 150px;
+    resize: vertical;
+  }
 
-textarea {
-  min-height: 150px;
-  resize: vertical;
-}
+  /* Button Styling */
+  button {
+    background-color: #333;
+    color: white;
+    font-size: 1.2rem;
+    padding: 10px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
 
-/* Button Styling */
-button {
-  background-color: #333;
-  color: white;
-  font-size: 1.2rem;
-  padding: 10px;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-button:hover {
-  background-color: #555;
+  button:hover {
+    background-color: #555;
+  }
 }
 
 /* Error Message */

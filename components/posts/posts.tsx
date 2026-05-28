@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 
 type Comment = {
@@ -61,6 +61,39 @@ export default function Posts({
   refreshComments,
 }: PostsProps) {
   const [openComments, setOpenComments] = useState<Record<number, boolean>>({});
+  const [modalImage, setModalImage] = useState<string | null>(null);
+  const [isModalImageZoomed, setIsModalImageZoomed] = useState(false);
+  const [modalZoomOrigin, setModalZoomOrigin] = useState("50% 50%");
+
+  const closeImageModal = () => {
+    setModalImage(null);
+    setIsModalImageZoomed(false);
+    setModalZoomOrigin("50% 50%");
+  };
+
+  const handleModalImageClick = (e: React.MouseEvent<HTMLImageElement>) => {
+    if (!isModalImageZoomed) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const xPercent = ((e.clientX - rect.left) / rect.width) * 100;
+      const yPercent = ((e.clientY - rect.top) / rect.height) * 100;
+      setModalZoomOrigin(`${xPercent}% ${yPercent}%`);
+      setIsModalImageZoomed(true);
+      return;
+    }
+
+    setIsModalImageZoomed(false);
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        closeImageModal();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   if (!posts || posts.length === 0) return <p>No posts found</p>;
   return (
@@ -71,7 +104,7 @@ export default function Posts({
         const mostLikedComment =
           post.comments.length > 0
             ? [...post.comments].sort(
-                (a, b) => (b.likes || 0) - (a.likes || 0)
+                (a, b) => (b.likes || 0) - (a.likes || 0),
               )[0]
             : null;
         // All other comments except the most liked
@@ -82,6 +115,11 @@ export default function Posts({
                 .slice(1)
             : [];
         const commentCount = post.comments.length;
+        const imageSrc =
+          post.image && post.image !== "null" && post.image !== ""
+            ? post.image
+            : null;
+
         return (
           <div key={postId} className="post">
             <div style={{ display: "flex", alignItems: "center" }}>
@@ -122,19 +160,18 @@ export default function Posts({
                 <span className="post-author-name">{post.trueName}</span>
               </div>
             </div>
-            <p>{post.content}</p>
+            <p className="post-content">{post.content}</p>
             {/* Tags rendering can be added here if needed */}
-            {post.image && post.image !== "null" && post.image !== "" && (
+            {imageSrc && (
               <img
-                src={
-                  post.image.startsWith("http")
-                    ? post.image
-                    : serverAddress
-                    ? `${serverAddress}${post.image}`
-                    : post.image
-                }
+                src={imageSrc}
                 className="post-image"
                 alt="Post"
+                onClick={() => {
+                  setModalImage(imageSrc);
+                  setIsModalImageZoomed(false);
+                  setModalZoomOrigin("50% 50%");
+                }}
               />
             )}
             <div className="post-stats-container">
@@ -342,7 +379,7 @@ export default function Posts({
                           body: JSON.stringify({
                             comment_content: commentInputs[postId] || "",
                           }),
-                        }
+                        },
                       );
                       if (!res.ok) {
                         const err = await res.json();
@@ -410,6 +447,41 @@ export default function Posts({
           </div>
         );
       })}
+
+      {modalImage && (
+        <div className="image-modal" onClick={closeImageModal}>
+          <div
+            className="image-modal-inner"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={modalImage}
+              alt="Post preview"
+              className="image-modal-img"
+              onClick={handleModalImageClick}
+              style={{
+                transform: isModalImageZoomed ? "scale(3)" : "scale(1)",
+                transformOrigin: modalZoomOrigin,
+                transition: "transform 0.2s ease",
+                cursor: isModalImageZoomed ? "zoom-out" : "zoom-in",
+              }}
+            />
+            <a
+              href={modalImage}
+              download
+              className="image-modal-download"
+              title="Download image"
+              target="_blank"
+            >
+              <img
+                src="../icons/download_icon.png"
+                alt="Download"
+                className="download-icon-img"
+              />
+            </a>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

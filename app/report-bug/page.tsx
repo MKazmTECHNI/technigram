@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import "./report.css";
 
 const serverAddress = process.env.NEXT_PUBLIC_SERVER_ADDRESS;
 
@@ -29,30 +30,53 @@ export default function ReportBugPage() {
   };
 
   return (
-    <div style={{ maxWidth: 400, margin: "48px auto", padding: 24, background: "#181818", borderRadius: 16, color: "#fff" }}>
-      <h2 style={{ color: "#c6a4ff" }}>Report a Bug / Suggestion</h2>
-      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div className="parent-container">
+      <h2 className="report-title">Report a Bug / Suggestion</h2>
+      <form onSubmit={handleSubmit}>
         <label>
           Type:
-          <select value={type} onChange={e => setType(e.target.value)} style={{ marginLeft: 8 }}>
+          <select value={type} onChange={(e) => setType(e.target.value)}>
             <option value="bug">Bug</option>
             <option value="proposition">Proposition</option>
           </select>
         </label>
         <label>
           Title:
-          <input value={title} onChange={e => setTitle(e.target.value)} required style={{ width: "100%", marginTop: 4 }} />
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            required
+          />
         </label>
         <label>
           Description:
-          <textarea value={description} onChange={e => setDescription(e.target.value)} required style={{ width: "100%", marginTop: 4, minHeight: 80 }} />
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            required
+          />
         </label>
         <label>
           Image URL (optional):
-          <input value={imageUrl} onChange={e => setImageUrl(e.target.value)} style={{ width: "100%", marginTop: 4 }} />
+          <input
+            value={imageUrl}
+            onChange={(e) => setImageUrl(e.target.value)}
+          />
         </label>
-        <button type="submit" style={{ background: "#c6a4ff", color: "#181818", border: "none", borderRadius: 8, padding: "10px 0", fontWeight: 600 }}>Submit</button>
-        {status && <div style={{ color: status === "Report sent!" ? "#7fff7f" : "#ff7f7f", marginTop: 8 }}>{status}</div>}
+        <button type="submit" className="report-submit-btn">
+          Submit
+        </button>
+        {status && (
+          <div
+            className={`report-status ${
+              status === "Report sent!"
+                ? "report-status-success"
+                : "report-status-error"
+            }`}
+          >
+            {status}
+          </div>
+        )}
       </form>
     </div>
   );

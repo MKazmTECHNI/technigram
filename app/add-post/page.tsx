@@ -92,7 +92,6 @@ export default function Home() {
 
   return (
     <main>
-      <h3>tags are not yet supported but content and images work</h3>
       <form id="addPostForm" onSubmit={handleSubmit}>
         <h1>Create New Post</h1>
 
@@ -107,7 +106,7 @@ export default function Home() {
           onPaste={handlePaste}
         ></textarea>
 
-        <input type="text" id="tags" name="tags" placeholder="Add tags..." />
+        {/* <input type="text" id="tags" name="tags" placeholder="Add tags..." /> */}
 
         <div
           id="image-upload"

@@ -1,5 +1,4 @@
-const sqlite3 = require('sqlite3').verbose();
-
+const sqlite3 = require("sqlite3").verbose();
 
 const initSql = `
 CREATE TABLE IF NOT EXISTS users (
@@ -36,15 +35,15 @@ CREATE TABLE IF NOT EXISTS allowed_emails (
     email TEXT PRIMARY KEY
 );
             `;
-            
+
 function initDb(callback) {
-  const db = new sqlite3.Database("technigram.db")
+  const db = new sqlite3.Database("technigram.db");
   db.exec(initSql, (err) => {
     if (err) {
-      console.error('DB init error:', err);
+      console.error("DB init error:", err);
       if (callback) callback(err);
     } else {
-      console.log('Database initialized (if needed)');
+      console.log("Database initialized (if needed)");
       if (callback) callback(null);
     }
     db.close();

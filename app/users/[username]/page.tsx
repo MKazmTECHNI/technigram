@@ -40,29 +40,29 @@ export default function UserProfilePage() {
     typeof params.username === "string"
       ? params.username
       : Array.isArray(params.username)
-      ? params.username[0]
-      : "";
+        ? params.username[0]
+        : "";
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [posts, setPosts] = useState<Post[]>([]);
   const [likeLoading, setLikeLoading] = useState<{ [key: number]: boolean }>(
-    {}
+    {},
   );
   const [commentLikeLoading, setCommentLikeLoading] = useState<{
     [key: number]: boolean;
   }>({});
   const [commentInputs, setCommentInputs] = useState<{ [key: number]: string }>(
-    {}
+    {},
   );
   const [commentLoading, setCommentLoading] = useState<{
     [key: number]: boolean;
   }>({});
   const [commentError, setCommentError] = useState<{ [key: number]: string }>(
-    {}
+    {},
   );
   const [modalImage, setModalImage] = useState<string | null>(null);
   const [openComments, setOpenComments] = useState<{ [key: number]: boolean }>(
-    {}
+    {},
   );
 
   // Helper to check if user is logged in
@@ -80,8 +80,8 @@ export default function UserProfilePage() {
       const updatedPost = await response.json();
       setPosts((prev) =>
         prev.map((p) =>
-          p.post_id === postId ? { ...p, comments: updatedPost.comments } : p
-        )
+          p.post_id === postId ? { ...p, comments: updatedPost.comments } : p,
+        ),
       );
     } catch {}
   };
@@ -102,8 +102,8 @@ export default function UserProfilePage() {
         const data = await res.json();
         setPosts((prev) =>
           prev.map((p) =>
-            p.post_id === postId ? { ...p, likes: data.likes } : p
-          )
+            p.post_id === postId ? { ...p, likes: data.likes } : p,
+          ),
         );
       }
     } finally {
@@ -124,7 +124,7 @@ export default function UserProfilePage() {
           headers: {
             Authorization: `Bearer ${user.token}`,
           },
-        }
+        },
       );
       if (res.ok) {
         const data = await res.json();
@@ -134,11 +134,13 @@ export default function UserProfilePage() {
               ? {
                   ...p,
                   comments: p.comments.map((c: any) =>
-                    c.comment_id === commentId ? { ...c, likes: data.likes } : c
+                    c.comment_id === commentId
+                      ? { ...c, likes: data.likes }
+                      : c,
                   ),
                 }
-              : p
-          )
+              : p,
+          ),
         );
       }
     } finally {
@@ -151,7 +153,7 @@ export default function UserProfilePage() {
     async function fetchProfile() {
       try {
         const res = await fetch(
-          `${serverAddress}/users/by-username/${username}`
+          `${serverAddress}/users/by-username/${username}`,
         );
         if (!res.ok) {
           window.location.replace("/");
@@ -179,7 +181,7 @@ export default function UserProfilePage() {
           const postsWithDetails = await Promise.all(
             data.map(async (post: any) => {
               const postDetails = await fetch(
-                `${serverAddress}/posts/${post.post_id}`
+                `${serverAddress}/posts/${post.post_id}`,
               );
               const safeTrueName = profile?.true_name ?? "";
               const safeProfilePicture =
@@ -202,7 +204,7 @@ export default function UserProfilePage() {
                 trueName: safeTrueName,
                 creatorProfilePicture: safeProfilePicture,
               };
-            })
+            }),
           );
           setPosts(postsWithDetails);
         }
