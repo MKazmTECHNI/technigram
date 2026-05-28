@@ -3,21 +3,19 @@ const jwt = require("jsonwebtoken");
 
 function generateToken(user) {
   const tokenPayload = { id: user.id, username: user.username };
-  // No expiresIn: tokens never expire
-  return jwt.sign(tokenPayload, process.env.APP_SECRET);
+  return jwt.sign(tokenPayload, process.env.APP_SECRET, { expiresIn: "7d" });
 }
 
-function verifyToken(id, token) {
+async function verifyToken(token) {
   try {
-    // Ignore expiration errors: treat expired tokens as valid
-    const decoded = jwt.verify(token, process.env.APP_SECRET, { ignoreExpiration: true });
-    const data = return_sql('SELECT * FROM users WHERE token = ?', [token]);
-    if (data.length === 0) {
-      return { error: 'invalid', details: 'Token not found in database' };
+    const decoded = jwt.verify(token, process.env.APP_SECRET);
+    const users = await return_sql('SELECT id, username, permission FROM users WHERE id = ?', [decoded.id]);
+    if (users.length === 0) {
+      return { error: 'invalid', details: 'User not found' };
     }
+    return { id: users[0].id, username: users[0].username, permission: users[0].permission };
   } catch (err) {
-    console.log('verifyToken: invalid token', err);
-    return { error: 'invalid', details: err };
+    return { error: 'invalid', details: err.message };
   }
 }
 

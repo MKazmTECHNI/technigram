@@ -11,12 +11,25 @@ function LoginCallbackInner() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const code = searchParams.get("code");
-    if (!code) {
-      setError("No code found in URL");
+    // Check for direct token from Passport redirect first
+    const id = searchParams.get("id");
+    const username = searchParams.get("username");
+    const token = searchParams.get("token");
+    if (id && username && token) {
+      localStorage.setItem(
+        "currentUser",
+        JSON.stringify({ id, username, token }),
+      );
+      router.replace("/");
       return;
     }
-    // Send code to backend to exchange for user info and token
+
+    // Otherwise, try code exchange via API
+    const code = searchParams.get("code");
+    if (!code) {
+      setError("No authentication data found in URL");
+      return;
+    }
     fetch(`${serverAddress}/api/auth/google/callback`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -33,7 +46,7 @@ function LoginCallbackInner() {
               id: data.id,
               username: data.username,
               token: data.token,
-            })
+            }),
           );
           router.replace("/");
         } else {

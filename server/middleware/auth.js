@@ -1,6 +1,6 @@
-const { return_sql } = require("../utils/dbUtils");
+const jwt = require("jsonwebtoken");
 
-async function authenticateToken(req, res, next) {
+function authenticateToken(req, res, next) {
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.split(" ")[1];
 
@@ -9,18 +9,11 @@ async function authenticateToken(req, res, next) {
   }
 
   try {
-    const result = await return_sql(
-      "SELECT id, username FROM users WHERE token = ?",
-      [token]
-    );
-    if (!result.length) {
-      return res.status(403).json({ error: "Invalid token" });
-    }
-    // Ensure id is a number
-    req.user = { ...result[0], id: Number(result[0].id) };
+    const decoded = jwt.verify(token, process.env.APP_SECRET);
+    req.user = { id: decoded.id, username: decoded.username };
     next();
   } catch (err) {
-    res.status(500).json({ error: "Server error during authentication" });
+    return res.status(403).json({ error: "Invalid or expired token" });
   }
 }
 

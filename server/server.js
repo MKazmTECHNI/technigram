@@ -43,6 +43,8 @@ const profileRoutes = require("./routes/profile");
 const changelogRoutes = require("./routes/changelog");
 const googleCallbackApi = require("./api/auth/google/callback");
 const reportRouter = require("./routes/report");
+const socialRouter = require("./routes/social");
+const feedRouter = require("./routes/feed");
 const dbTablesApi = require("./api/db/tables");
 const checkPermissionApi = require("./api/db/checkPermission");
 
@@ -72,6 +74,8 @@ app.use("/api/auth/google/callback", googleCallbackApi);
 app.use("/report", reportRouter);
 app.use("/api/db/tables", dbTablesApi);
 app.use("/api/db/check-permission", checkPermissionApi);
+app.use("/social", socialRouter);
+app.use("/feed", feedRouter);
 
 app.get("/healthcheck", (req, res) => {
   res.status(200).json({

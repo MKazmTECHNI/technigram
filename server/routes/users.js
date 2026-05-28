@@ -27,7 +27,7 @@ router.get("/by-username/:username", async (req, res) => {
   const username = req.params.username;
   try {
     const result = await return_sql(
-      `SELECT username, true_name, profile_picture FROM users WHERE username = ?`,
+      `SELECT username, true_name, profile_picture, created_at FROM users WHERE username = ?`,
       [username]
     );
     if (result.length === 0) {
@@ -49,19 +49,77 @@ router.get("/:username/posts", async (req, res) => {
   const username = req.params.username;
   try {
     const userResult = await return_sql(
-      `SELECT id FROM users WHERE username = ?`,
+      `SELECT id, username, true_name, profile_picture FROM users WHERE username = ?`,
       [username]
     );
     if (!userResult.length) {
       return res.status(404).json({ error: "User not found" });
     }
-    const userId = userResult[0].id;
+    const user = userResult[0];
+    const userId = user.id;
+
+    const profilePictureUrl =
+      user.profile_picture && user.profile_picture !== ""
+        ? user.profile_picture.startsWith("http")
+          ? user.profile_picture
+          : `${SERVER_ADDRESS}${user.profile_picture}`
+        : `${SERVER_ADDRESS}/images/profiles/default-profile.png`;
+
     const posts = await return_sql(
       `SELECT post_id, content, image, created_at as date, likes FROM posts WHERE creator_id = ? ORDER BY created_at DESC`,
       [userId]
     );
-    res.json(posts);
+
+    // Fetch comments for all posts in batch
+    const postIds = posts.map(p => p.post_id);
+    let commentsMap = {};
+    if (postIds.length > 0) {
+      const placeholders = postIds.map(() => '?').join(',');
+      const comments = await return_sql(`
+        SELECT c.comment_id, c.comment_creator_id, c.post_id, c.comment_content, c.likes,
+               u.username, u.profile_picture
+        FROM comments c
+        JOIN users u ON c.comment_creator_id = u.id
+        WHERE c.post_id IN (${placeholders})
+      `, postIds);
+
+      for (const comment of comments) {
+        if (!commentsMap[comment.post_id]) commentsMap[comment.post_id] = [];
+        let picUrl;
+        if (comment.profile_picture && comment.profile_picture !== "") {
+          if (comment.profile_picture.startsWith("http")) {
+            picUrl = comment.profile_picture;
+          } else {
+            picUrl = `${SERVER_ADDRESS}${comment.profile_picture}`;
+          }
+        } else {
+          picUrl = `${SERVER_ADDRESS}/images/profiles/default-profile.png`;
+        }
+        commentsMap[comment.post_id].push({
+          comment_id: comment.comment_id,
+          comment_content: comment.comment_content,
+          likes: comment.likes || 0,
+          username: comment.username,
+          profile_picture: picUrl,
+        });
+      }
+    }
+
+    const result = posts.map(post => ({
+      post_id: post.post_id,
+      content: post.content,
+      image: post.image ? `${SERVER_ADDRESS}${post.image}` : null,
+      date: post.date,
+      likes: post.likes || 0,
+      comments: commentsMap[post.post_id] || [],
+      creatorUsername: username,
+      trueName: user.true_name || "",
+      creatorProfilePicture: profilePictureUrl,
+    }));
+
+    res.json(result);
   } catch (err) {
+    console.error("Error fetching user posts:", err);
     res.status(500).json({ error: "Failed to fetch user posts" });
   }
 });

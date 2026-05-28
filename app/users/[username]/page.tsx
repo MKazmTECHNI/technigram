@@ -177,42 +177,13 @@ export default function UserProfilePage() {
         const res = await fetch(`${serverAddress}/users/${username}/posts`);
         if (res.ok) {
           const data = await res.json();
-          // For each post, fetch comments and author info (to match homepage)
-          const postsWithDetails = await Promise.all(
-            data.map(async (post: any) => {
-              const postDetails = await fetch(
-                `${serverAddress}/posts/${post.post_id}`,
-              );
-              const safeTrueName = profile?.true_name ?? "";
-              const safeProfilePicture =
-                profile?.profile_picture ??
-                `${serverAddress}/images/profiles/default-profile.png`;
-              if (postDetails.ok) {
-                const full = await postDetails.json();
-                return {
-                  ...post,
-                  comments: full.comments || [],
-                  creatorUsername: username,
-                  trueName: safeTrueName,
-                  creatorProfilePicture: safeProfilePicture,
-                };
-              }
-              return {
-                ...post,
-                comments: [],
-                creatorUsername: username,
-                trueName: safeTrueName,
-                creatorProfilePicture: safeProfilePicture,
-              };
-            }),
-          );
-          setPosts(postsWithDetails);
+          setPosts(data);
         }
       } catch {}
     }
     fetchUserPosts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [username, profile?.true_name, profile?.profile_picture]);
+  }, [username]);
 
   if (loading)
     return (

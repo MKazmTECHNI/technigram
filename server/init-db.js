@@ -34,7 +34,27 @@ CREATE TABLE IF NOT EXISTS comment_likes (id INTEGER PRIMARY KEY AUTOINCREMENT, 
 CREATE TABLE IF NOT EXISTS allowed_emails (
     email TEXT PRIMARY KEY
 );
-            `;
+CREATE TABLE IF NOT EXISTS tags (
+    tag_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name VARCHAR(50) UNIQUE NOT NULL
+);
+CREATE TABLE IF NOT EXISTS post_tags (
+    post_id INTEGER NOT NULL REFERENCES posts(post_id),
+    tag_id INTEGER NOT NULL REFERENCES tags(tag_id),
+    PRIMARY KEY (post_id, tag_id)
+);
+CREATE TABLE IF NOT EXISTS follows (
+    follower_id INTEGER NOT NULL REFERENCES users(id),
+    following_id INTEGER NOT NULL REFERENCES users(id),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (follower_id, following_id)
+);
+CREATE TABLE IF NOT EXISTS post_views (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    post_id INTEGER NOT NULL REFERENCES posts(post_id),
+    user_id INTEGER REFERENCES users(id),
+    viewed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);`;
 
 function initDb(callback) {
   const db = new sqlite3.Database("technigram.db");

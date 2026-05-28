@@ -8,9 +8,9 @@ const {
   postCommentLimiter,
   postLikeLimiter,
   commentLikeLimiter,
+  postCreateLimiter,
 } = require("../middleware/rateLimiter");
 const { authenticateToken } = require("../middleware/auth");
-const { log } = require("console");
 
 const router = express.Router();
 const SERVER_ADDRESS = process.env.SERVER_ADDRESS;
@@ -63,6 +63,88 @@ router.get("/count", async (req, res) => {
     res.json({ numberOfPosts: results[0].count });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch post count" });
+  }
+});
+
+// Get paginated posts (newest first)
+router.get("/", async (req, res) => {
+  try {
+    const offset = Math.max(0, parseInt(req.query.offset) || 0);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 10));
+
+    const posts = await return_sql(`
+      SELECT p.post_id, p.content, p.creator_id, p.created_at, p.likes, p.image,
+             u.username, u.true_name, u.profile_picture
+      FROM posts p
+      JOIN users u ON p.creator_id = u.id
+      ORDER BY p.created_at DESC
+      LIMIT ? OFFSET ?`, [limit, offset]);
+
+    const postIds = posts.map(p => p.post_id);
+    const totalResult = await return_sql("SELECT COUNT(*) AS count FROM posts");
+    const total = totalResult[0].count;
+
+    // Fetch comments for all posts in batch
+    let commentsMap = {};
+    if (postIds.length > 0) {
+      const placeholders = postIds.map(() => '?').join(',');
+      const comments = await return_sql(`
+        SELECT c.comment_id, c.comment_creator_id, c.post_id, c.comment_content, c.likes,
+               u.username, u.profile_picture
+        FROM comments c
+        JOIN users u ON c.comment_creator_id = u.id
+        WHERE c.post_id IN (${placeholders})`, postIds);
+
+      // Group comments by post_id
+      for (const comment of comments) {
+        if (!commentsMap[comment.post_id]) commentsMap[comment.post_id] = [];
+        let profilePicUrl;
+        if (comment.profile_picture && comment.profile_picture !== "") {
+          if (comment.profile_picture.startsWith("http")) {
+            profilePicUrl = comment.profile_picture;
+          } else {
+            profilePicUrl = `${SERVER_ADDRESS}${comment.profile_picture}`;
+          }
+        } else {
+          profilePicUrl = `${SERVER_ADDRESS}/images/profiles/default-profile.png`;
+        }
+        commentsMap[comment.post_id].push({
+          comment_id: comment.comment_id,
+          comment_content: comment.comment_content,
+          likes: comment.likes || 0,
+          username: comment.username,
+          profile_picture: profilePicUrl,
+        });
+      }
+    }
+
+    const result = posts.map(post => {
+      const profilePictureUrl =
+        post.profile_picture && post.profile_picture !== ""
+          ? post.profile_picture.startsWith("http")
+            ? post.profile_picture
+            : `${SERVER_ADDRESS}${post.profile_picture}`
+          : `${SERVER_ADDRESS}/images/profiles/default-profile.png`;
+
+      const imageUrl = post.image && post.image !== "" ? `${SERVER_ADDRESS}${post.image}` : null;
+
+      return {
+        post_id: post.post_id,
+        content: post.content,
+        creatorUsername: post.username,
+        trueName: post.true_name,
+        creatorProfilePicture: profilePictureUrl,
+        likes: post.likes || 0,
+        date: post.created_at,
+        image: imageUrl,
+        comments: commentsMap[post.post_id] || [],
+      };
+    });
+
+    res.json({ posts: result, total, offset, limit });
+  } catch (err) {
+    console.error("Error fetching posts:", err);
+    res.status(500).json({ error: "Failed to fetch posts" });
   }
 });
 
@@ -206,7 +288,7 @@ router.post(
 // Create a new post
 router.post(
   "/",
-  postCommentLimiter,
+  postCreateLimiter,
   authenticateToken,
   (req, res, next) => {
     upload.single("image")(req, res, function (err) {
@@ -215,24 +297,16 @@ router.post(
         (err.message === "Only JPEG and PNG files are allowed" ||
           err.code === "LIMIT_FILE_TYPE")
       ) {
-        // Do not log to console, just respond with user-friendly message
         return res.json({ error: "Only PNG and JPEG are allowed!" });
       }
       if (err) {
-        // Do not log to console, just respond with generic error
         return res.json({ error: "File upload error" });
       }
       next();
     });
   },
   async (req, res) => {
-    // Support both JSON and multipart/form-data
-    let content;
-    if (req.is("multipart/form-data")) {
-      content = req.body.content;
-    } else {
-      content = req.body.content;
-    }
+    const content = req.body.content;
     const creator_id = req.user.id;
 
     if (!content) {
@@ -244,7 +318,8 @@ router.post(
         .json({ error: "Content cannot exceed 1500 characters" });
     }
 
-    // Handle image if present
+    const sanitizedContent = xss(content);
+
     let imagePath = null;
     if (req.file) {
       imagePath = `/images/posts/${req.file.filename}`;
@@ -255,12 +330,12 @@ router.post(
         `INSERT INTO posts (creator_id, content${
           imagePath ? ", image" : ""
         }) VALUES (?, ?${imagePath ? ", ?" : ""})`,
-        imagePath ? [creator_id, content, imagePath] : [creator_id, content]
+        imagePath ? [creator_id, sanitizedContent, imagePath] : [creator_id, sanitizedContent]
       );
       res.status(201).json({
         post_id: insertResult.lastID,
         creator_id,
-        content,
+        content: sanitizedContent,
         image: imagePath ? `${SERVER_ADDRESS}${imagePath}` : null,
         likes: 0,
         created_at: new Date(),

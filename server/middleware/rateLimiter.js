@@ -36,6 +36,15 @@ const commentLikeLimiter = rateLimit({
   handler: jsonRateLimitHandler,
 });
 
+const postCreateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 3,
+  message: "Too many posts. Please slow down.",
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: jsonRateLimitHandler,
+});
+
 const profilePicLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 5,
@@ -50,4 +59,5 @@ module.exports = {
   postLikeLimiter,
   commentLikeLimiter,
   profilePicLimiter,
+  postCreateLimiter,
 };

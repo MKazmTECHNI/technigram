@@ -71,28 +71,8 @@ router.post(
   }
 );
 
-// Get profile picture (with /profile prefix)
+// Get profile picture
 router.get("/profile/picture/:userId", async (req, res) => {
-  try {
-    const userId = req.params.userId;
-    const result = await return_sql(
-      "SELECT profile_picture FROM users WHERE id = ?",
-      [userId]
-    );
-    let filePath;
-    if (!result.length || !result[0].profile_picture) {
-      filePath = `${SERVER_ADDRESS}/images/profiles/default-profile.png`;
-    } else {
-      filePath = `${SERVER_ADDRESS}${result[0].profile_picture}`;
-    }
-    res.json({ filePath });
-  } catch (err) {
-    res.status(500).json({ error: "Failed to fetch profile picture" });
-  }
-});
-
-// Get profile picture (no prefix, for compatibility)
-router.get("/picture/:userId", async (req, res) => {
   try {
     const userId = req.params.userId;
     const result = await return_sql(

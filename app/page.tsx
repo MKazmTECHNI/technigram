@@ -1,8 +1,9 @@
 "use client";
 
 import "./styles.css";
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import Posts from "../components/posts/posts";
+import Link from "next/link";
 
 const serverAddress = process.env.NEXT_PUBLIC_SERVER_ADDRESS;
 
@@ -26,11 +27,17 @@ type Post = {
   comments: Comment[];
 };
 
+const POSTS_PER_PAGE = 10;
+
 export default function Home() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
-  const fetchedRef = useRef(false); // Prevent double fetch
+  const [hasMore, setHasMore] = useState(true);
+  const [offset, setOffset] = useState(0);
+  const [feedMode, setFeedMode] = useState<"foryou" | "latest">("foryou");
+  const fetchedRef = useRef(false);
 
   const [likeLoading, setLikeLoading] = useState<{ [key: number]: boolean }>(
     {},
@@ -48,14 +55,12 @@ export default function Home() {
     {},
   );
 
-  // Helper to check if user is logged in
   const getCurrentUser = () => {
     if (typeof window === "undefined") return null;
     const data = localStorage.getItem("currentUser");
     return data ? JSON.parse(data) : null;
   };
 
-  // Refresh comments for a single post after adding a comment
   const refreshComments = async (postId: number) => {
     try {
       const response = await fetch(`${serverAddress}/posts/${postId}`);
@@ -69,7 +74,6 @@ export default function Home() {
     } catch {}
   };
 
-  // Like/unlike a post
   const handlePostLike = async (postId: number) => {
     const user = getCurrentUser();
     if (!user) return;
@@ -104,7 +108,6 @@ export default function Home() {
     }
   };
 
-  // Like/unlike a comment
   const handleCommentLike = async (commentId: number, postId: number) => {
     const user = getCurrentUser();
     if (!user) return;
@@ -151,104 +154,104 @@ export default function Home() {
     }
   };
 
-  // Add post handler
-  const handleAddPost = async (content: string, image?: File) => {
+  const fetchPosts = useCallback(async (currentOffset: number, mode?: "foryou" | "latest") => {
+    const activeMode = mode || feedMode;
     const user = getCurrentUser();
-    if (!user) return;
-    try {
-      const res = await fetch(`${serverAddress}/posts`, {
-        method: "POST",
-        headers: image
-          ? {
-              Authorization: `Bearer ${user.token}`,
-            }
-          : {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${user.token}`,
-            },
-        body: image
-          ? (() => {
-              const formData = new FormData();
-              formData.append("content", content);
-              if (image) formData.append("image", image);
-              return formData;
-            })()
-          : JSON.stringify({ content }),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        if (err.muted) {
-          alert(
-            err.error +
-              (err.retryAfter
-                ? ` Try again in ${err.retryAfter} seconds.`
-                : ""),
-          );
-        } else {
-          alert(err.error || "Failed to add post");
-        }
-        return false;
-      }
-      return true;
-    } catch {
-      alert("Failed to add post");
-      return false;
+    const isInitial = currentOffset === 0;
+
+    if (isInitial) {
+      setLoading(true);
+    } else {
+      setLoadingMore(true);
     }
-  };
+
+    try {
+      let endpoint: string;
+      if (activeMode === "foryou" && user) {
+        endpoint = `${serverAddress}/feed/foryou?offset=${currentOffset}&limit=${POSTS_PER_PAGE}`;
+      } else {
+        endpoint = `${serverAddress}/feed/latest?offset=${currentOffset}&limit=${POSTS_PER_PAGE}`;
+      }
+
+      const headers: Record<string, string> = {};
+      if (user) {
+        headers["Authorization"] = `Bearer ${user.token}`;
+      }
+
+      const res = await fetch(endpoint, { headers });
+      if (!res.ok) throw new Error("Failed to fetch posts");
+      const data = await res.json();
+
+      if (isInitial) {
+        setPosts(data.posts);
+      } else {
+        setPosts((prev) => [...prev, ...data.posts]);
+      }
+      setHasMore(currentOffset + POSTS_PER_PAGE < data.total);
+      setOffset(currentOffset + POSTS_PER_PAGE);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }, [feedMode]);
 
   useEffect(() => {
     if (fetchedRef.current) return;
     fetchedRef.current = true;
+    const user = getCurrentUser();
+    const mode = user ? "foryou" : "latest";
+    setFeedMode(mode);
+    fetchPosts(0, mode);
+  }, [fetchPosts]);
 
-    async function fetchPosts() {
-      try {
-        const postCountResponse = await fetch(`${serverAddress}/posts/count`);
-        if (!postCountResponse.ok) {
-          throw new Error("Failed to fetch post count");
-        }
-        const postCount = await postCountResponse.json();
-        const totalPosts = postCount.numberOfPosts;
-
-        // Fetch posts one by one
-        for (let i = totalPosts; i > 0; i--) {
-          try {
-            const response = await fetch(`${serverAddress}/posts/${i}`);
-            if (!response.ok) {
-              console.warn(`Failed to fetch post with ID ${i}`);
-              continue;
-            }
-            const post = await response.json();
-            setPosts((prevPosts) => [...prevPosts, post]);
-          } catch (postError) {
-            console.warn(postError);
-          }
-        }
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
+  // Infinite scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      if (loadingMore || !hasMore) return;
+      const scrollBottom = window.innerHeight + window.scrollY;
+      const threshold = document.body.offsetHeight - 400;
+      if (scrollBottom >= threshold) {
+        fetchPosts(offset);
       }
-    }
-
-    fetchPosts();
-  }, []);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [loadingMore, hasMore, offset, fetchPosts]);
 
   return (
-    <Posts
-      posts={posts}
-      serverAddress={serverAddress}
-      likeLoading={likeLoading}
-      commentLikeLoading={commentLikeLoading}
-      handlePostLike={handlePostLike}
-      handleCommentLike={handleCommentLike}
-      getCurrentUser={getCurrentUser}
-      commentInputs={commentInputs}
-      setCommentInputs={setCommentInputs}
-      commentLoading={commentLoading}
-      commentError={commentError}
-      setCommentLoading={setCommentLoading}
-      setCommentError={setCommentError}
-      refreshComments={refreshComments}
-    />
+    <>
+      {!getCurrentUser() && (
+        <div style={{ textAlign: "center", margin: "16px 0", color: "#c6a4ff" }}>
+          <Link href="/login" style={{ color: "#c6a4ff", fontWeight: "bold" }}>
+            Log in
+          </Link>{" "}
+          for a personalized feed. Showing latest posts.
+        </div>
+      )}
+      <Posts
+        posts={posts}
+        serverAddress={serverAddress}
+        likeLoading={likeLoading}
+        commentLikeLoading={commentLikeLoading}
+        handlePostLike={handlePostLike}
+        handleCommentLike={handleCommentLike}
+        getCurrentUser={getCurrentUser}
+        commentInputs={commentInputs}
+        setCommentInputs={setCommentInputs}
+        commentLoading={commentLoading}
+        commentError={commentError}
+        setCommentLoading={setCommentLoading}
+        setCommentError={setCommentError}
+        refreshComments={refreshComments}
+      />
+      {loading && <p style={{ textAlign: "center", color: "#c6a4ff", marginTop: 20 }}>Loading posts...</p>}
+      {loadingMore && <p style={{ textAlign: "center", color: "#c6a4ff", marginTop: 20 }}>Loading more...</p>}
+      {error && <p style={{ textAlign: "center", color: "red", marginTop: 20 }}>{error}</p>}
+      {!hasMore && posts.length > 0 && (
+        <p style={{ textAlign: "center", color: "#969696", marginTop: 20, marginBottom: 40 }}>You&apos;ve seen all posts!</p>
+      )}
+    </>
   );
 }
