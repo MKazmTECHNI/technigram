@@ -48,6 +48,9 @@ type UserProfile = {
   created_at?: string;
 };
 
+const normalizeUrl = (url: string) =>
+  url.startsWith("http://") || url.startsWith("https://") ? url : `https://${url}`;
+
 const rankLabels: Record<string, string> = {
   uczen: "Student",
   nauczyciel: "Teacher",
@@ -494,7 +497,7 @@ export default function UserProfilePage() {
               </span>
             )}
             {!editMode && links.map((link, i) => (
-              <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" className="profile-link">
+              <a key={i} href={normalizeUrl(link.url)} target="_blank" rel="noopener noreferrer" className="profile-link">
                 🔗 {link.label}
               </a>
             ))}
