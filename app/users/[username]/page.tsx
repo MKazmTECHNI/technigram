@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import Posts from "../../../components/posts/posts";
+import CropModal from "../../../components/crop-modal";
 import "./user-profile.css";
 
 const serverAddress = process.env.NEXT_PUBLIC_SERVER_ADDRESS;
@@ -100,6 +101,9 @@ export default function UserProfilePage() {
   const [newLinkUrl, setNewLinkUrl] = useState("");
   const [profileMsg, setProfileMsg] = useState("");
   const [profilePicSrc, setProfilePicSrc] = useState("");
+  const [cropModalSrc, setCropModalSrc] = useState<string | null>(null);
+  const [cropModalAspect, setCropModalAspect] = useState(1);
+  const cropModalHandlerRef = useRef<((blob: Blob) => void) | null>(null);
 
   const getCurrentUser = () => currentUser;
 
@@ -337,26 +341,60 @@ export default function UserProfilePage() {
     setEditLinks((prev) => prev.filter((_, idx) => idx !== i));
   };
 
-  const handlePicUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !currentUser) return;
-    const formData = new FormData();
-    formData.append("profilePicture", file);
+  const uploadPicBlob = async (blob: Blob) => {
+    if (!currentUser) return;
+    const fd = new FormData();
+    fd.append("profilePicture", blob, "profile.jpg");
     const res = await fetch(`${serverAddress}/profile/upload-picture`, {
-      method: "POST", headers: { Authorization: `Bearer ${currentUser.token}` }, body: formData,
+      method: "POST", headers: { Authorization: `Bearer ${currentUser.token}` }, body: fd,
     });
     if (res.ok) { const data = await res.json(); setProfilePicSrc(data.filePath + "?t=" + Date.now()); showMsg("Profile picture updated!"); }
+    setCropModalSrc(null);
+    cropModalHandlerRef.current = null;
   };
 
-  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !currentUser) return;
-    const formData = new FormData();
-    formData.append("banner", file);
+  const uploadBannerBlob = async (blob: Blob) => {
+    if (!currentUser) return;
+    const fd = new FormData();
+    fd.append("banner", blob, "banner.jpg");
     const res = await fetch(`${serverAddress}/profile/upload-banner`, {
-      method: "POST", headers: { Authorization: `Bearer ${currentUser.token}` }, body: formData,
+      method: "POST", headers: { Authorization: `Bearer ${currentUser.token}` }, body: fd,
     });
     if (res.ok) { const data = await res.json(); setProfile((p) => p ? { ...p, banner: data.filePath + "?t=" + Date.now() } : p); showMsg("Banner updated!"); }
+    setCropModalSrc(null);
+    cropModalHandlerRef.current = null;
+  };
+
+  const handleFileSelect = (
+    file: File,
+    maxSize: number,
+    aspect: number,
+    onCropDone: (blob: Blob) => void,
+  ) => {
+    if (file.size > maxSize) {
+      const mb = maxSize / (1024 * 1024);
+      showMsg(`File too large. Max ${mb}MB.`);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCropModalAspect(aspect);
+      cropModalHandlerRef.current = onCropDone;
+      setCropModalSrc(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handlePicUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentUser) return;
+    handleFileSelect(file, 2 * 1024 * 1024, 1, uploadPicBlob);
+  };
+
+  const handleBannerUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentUser) return;
+    handleFileSelect(file, 4 * 1024 * 1024, 3, uploadBannerBlob);
   };
 
   if (loading) {
@@ -550,6 +588,15 @@ export default function UserProfilePage() {
       </div>
 
       {profileMsg && <div className="profile-msg">{profileMsg}</div>}
+
+      {cropModalSrc && (
+        <CropModal
+          imageSrc={cropModalSrc}
+          aspect={cropModalAspect}
+          onCrop={(blob) => cropModalHandlerRef.current?.(blob)}
+          onCancel={() => { setCropModalSrc(null); cropModalHandlerRef.current = null; }}
+        />
+      )}
     </div>
   );
 }
