@@ -5,7 +5,7 @@ const session = require("express-session");
 const passport = require("passport");
 const https = require("https");
 const fs = require("fs");
-require("dotenv").config();
+require("dotenv").config({ path: require("path").join(__dirname, "..", ".env") });
 
 const { initDb } = require("./init-db");
 
@@ -45,6 +45,7 @@ const googleCallbackApi = require("./api/auth/google/callback");
 const reportRouter = require("./routes/report");
 const socialRouter = require("./routes/social");
 const feedRouter = require("./routes/feed");
+const adminRouter = require("./routes/admin");
 const dbTablesApi = require("./api/db/tables");
 const checkPermissionApi = require("./api/db/checkPermission");
 
@@ -76,6 +77,7 @@ app.use("/api/db/tables", dbTablesApi);
 app.use("/api/db/check-permission", checkPermissionApi);
 app.use("/social", socialRouter);
 app.use("/feed", feedRouter);
+app.use("/api/admin", adminRouter);
 
 app.get("/healthcheck", (req, res) => {
   res.status(200).json({

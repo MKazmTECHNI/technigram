@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS users (
     banner TEXT DEFAULT '',
     links TEXT DEFAULT '[]',
     custom_css TEXT DEFAULT '',
+    custom_css_disabled INTEGER DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     last_activity TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     timeout TIMESTAMP DEFAULT NULL,
@@ -23,6 +24,7 @@ CREATE TABLE IF NOT EXISTS posts (
     creator_id INTEGER NOT NULL REFERENCES users(id),
     content TEXT NOT NULL,
     likes INTEGER DEFAULT 0,
+    hidden INTEGER DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     image TEXT
     );
@@ -86,6 +88,8 @@ function initDb(callback) {
       db.run("ALTER TABLE users ADD COLUMN banner TEXT DEFAULT ''", () => {});
       db.run("ALTER TABLE users ADD COLUMN links TEXT DEFAULT '[]'", () => {});
       db.run("ALTER TABLE users ADD COLUMN custom_css TEXT DEFAULT ''", () => {});
+      db.run("ALTER TABLE users ADD COLUMN custom_css_disabled INTEGER DEFAULT 0", () => {});
+      db.run("ALTER TABLE posts ADD COLUMN hidden INTEGER DEFAULT 0", () => {});
       // Indexes (safe to run again, IF NOT EXISTS)
       db.run("CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)");
       db.run("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)");

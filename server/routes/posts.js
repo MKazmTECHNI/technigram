@@ -59,7 +59,7 @@ function multerErrorHandler(handler) {
 // Get post count
 router.get("/count", async (req, res) => {
   try {
-    const results = await return_sql("SELECT COUNT(*) AS count FROM posts");
+    const results = await return_sql("SELECT COUNT(*) AS count FROM posts WHERE hidden = 0");
     res.json({ numberOfPosts: results[0].count });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch post count" });
@@ -77,11 +77,12 @@ router.get("/", async (req, res) => {
              u.username, u.true_name, u.profile_picture
       FROM posts p
       JOIN users u ON p.creator_id = u.id
+      WHERE p.hidden = 0
       ORDER BY p.created_at DESC
       LIMIT ? OFFSET ?`, [limit, offset]);
 
     const postIds = posts.map(p => p.post_id);
-    const totalResult = await return_sql("SELECT COUNT(*) AS count FROM posts");
+    const totalResult = await return_sql("SELECT COUNT(*) AS count FROM posts WHERE hidden = 0");
     const total = totalResult[0].count;
 
     // Fetch comments for all posts in batch
@@ -196,7 +197,7 @@ router.get("/:post_id", async (req, res) => {
     const postQuery = `
       SELECT post_id, content, creator_id, created_at, likes, image
       FROM posts
-      WHERE post_id = ?`;
+      WHERE post_id = ? AND hidden = 0`;
     const postResults = await return_sql(postQuery, [postId]);
     if (postResults.length === 0) throw new Error("Post not found");
     const post = postResults[0];

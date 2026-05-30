@@ -119,11 +119,12 @@ async function getLatestFeed(limit, offset, userId) {
            u.username, u.true_name, u.profile_picture
     FROM posts p
     JOIN users u ON p.creator_id = u.id
+    WHERE p.hidden = 0
     ORDER BY p.created_at DESC
     LIMIT ? OFFSET ?
   `, [limit, offset]);
 
-  const totalResult = await return_sql("SELECT COUNT(*) AS count FROM posts");
+  const totalResult = await return_sql("SELECT COUNT(*) AS count FROM posts WHERE hidden = 0");
   const total = totalResult[0].count;
   const formattedPosts = await buildPostResponse(posts, userId);
 
@@ -185,7 +186,7 @@ router.get("/foryou", async (req, res) => {
              (SELECT COUNT(*) FROM post_views pv WHERE pv.post_id = p.post_id) AS view_count
       FROM posts p
       JOIN users u ON p.creator_id = u.id
-      WHERE NOT EXISTS (
+      WHERE p.hidden = 0 AND NOT EXISTS (
         SELECT 1 FROM post_likes pl WHERE pl.post_id = p.post_id AND pl.user_id = ?
       )
       ORDER BY p.created_at DESC

@@ -46,6 +46,7 @@ type UserProfile = {
   banner?: string;
   links?: LinkItem[];
   custom_css?: string;
+  custom_css_disabled?: number;
   permission?: string;
   created_at?: string;
 };
@@ -412,7 +413,7 @@ export default function UserProfilePage() {
 
   return (
     <div className="profile-page">
-      {profile.custom_css && (
+      {profile.custom_css && !profile.custom_css_disabled && (
         <style>{profile.custom_css}</style>
       )}
       {/* Banner */}

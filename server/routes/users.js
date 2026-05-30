@@ -16,7 +16,7 @@ router.get("/liked-posts", authenticateToken, async (req, res) => {
       FROM posts p
       JOIN users u ON p.creator_id = u.id
       JOIN post_likes pl ON p.post_id = pl.post_id
-      WHERE pl.user_id = ?
+      WHERE pl.user_id = ? AND p.hidden = 0
       ORDER BY pl.id DESC
     `, [userId]);
 
@@ -102,7 +102,7 @@ router.get("/by-username/:username", async (req, res) => {
   const username = req.params.username;
   try {
     const result = await return_sql(
-      `SELECT id, username, true_name, profile_picture, bio, status, banner, links, custom_css, permission, created_at FROM users WHERE username = ?`,
+      `SELECT id, username, true_name, profile_picture, bio, status, banner, links, custom_css, custom_css_disabled, permission, created_at FROM users WHERE username = ?`,
       [username]
     );
     if (result.length === 0) {
@@ -145,7 +145,7 @@ router.get("/:username/posts", async (req, res) => {
         : `${SERVER_ADDRESS}/images/profiles/default-profile.png`;
 
     const posts = await return_sql(
-      `SELECT post_id, content, image, created_at as date, likes FROM posts WHERE creator_id = ? ORDER BY created_at DESC`,
+      `SELECT post_id, content, image, created_at as date, likes FROM posts WHERE creator_id = ? AND hidden = 0 ORDER BY created_at DESC`,
       [userId]
     );
 
