@@ -185,11 +185,12 @@ router.get("/foryou", async (req, res) => {
              (SELECT COUNT(*) FROM post_views pv WHERE pv.post_id = p.post_id) AS view_count
       FROM posts p
       JOIN users u ON p.creator_id = u.id
-      WHERE p.post_id NOT IN (
-        SELECT post_id FROM post_likes WHERE user_id = ?
+      WHERE NOT EXISTS (
+        SELECT 1 FROM post_likes pl WHERE pl.post_id = p.post_id AND pl.user_id = ?
       )
       ORDER BY p.created_at DESC
-    `, [userId]);
+      LIMIT ?
+    `, [userId, Math.max(offset + limit, 200)]);
 
     // Score each post
     const scored = posts.map(post => {

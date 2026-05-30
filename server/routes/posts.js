@@ -220,49 +220,28 @@ router.get("/:post_id", async (req, res) => {
     const imageUrl =
       post.image && post.image !== "" ? `${SERVER_ADDRESS}${post.image}` : null;
 
-    const commentsQuery = `
-      SELECT comment_id, comment_creator_id, comment_content, likes
-      FROM comments
-      WHERE post_id = ?`;
-    const commentResults = await return_sql(commentsQuery, [postId]);
-    const comments = await Promise.all(
-      commentResults.map(async (comment) => {
-        const commentUserQuery = `
-          SELECT username, profile_picture
-          FROM users
-          WHERE id = ?`;
-        const commentUserResults = await return_sql(commentUserQuery, [
-          comment.comment_creator_id,
-        ]);
-        const {
-          username: commentUsername,
-          profile_picture: commentProfilePicture,
-        } = commentUserResults[0];
-        let profilePicUrl;
-        if (commentProfilePicture && commentProfilePicture !== "") {
-          if (commentProfilePicture.startsWith("http")) {
-            profilePicUrl = commentProfilePicture;
-          } else {
-            // Ensure correct path prefix
-            const picPath = commentProfilePicture.startsWith(
-              "/images/profiles/"
-            )
-              ? commentProfilePicture
-              : `${SERVER_ADDRESS}/images/profiles/${commentProfilePicture}`;
-            profilePicUrl = `${picPath}`;
-          }
+    const comments = await return_sql(`
+      SELECT c.comment_id, c.comment_content, c.likes,
+             u.username, u.profile_picture
+      FROM comments c
+      JOIN users u ON c.comment_creator_id = u.id
+      WHERE c.post_id = ?`, [postId]);
+    for (const comment of comments) {
+      let picUrl;
+      if (comment.profile_picture && comment.profile_picture !== "") {
+        if (comment.profile_picture.startsWith("http")) {
+          picUrl = comment.profile_picture;
         } else {
-          profilePicUrl = `${SERVER_ADDRESS}/images/profiles/default-profile.png`;
+          const picPath = comment.profile_picture.startsWith("/images/profiles/")
+            ? comment.profile_picture
+            : `${SERVER_ADDRESS}/images/profiles/${comment.profile_picture}`;
+          picUrl = picPath;
         }
-        return {
-          comment_id: comment.comment_id,
-          comment_content: comment.comment_content,
-          likes: comment.likes,
-          username: commentUsername,
-          profile_picture: profilePicUrl,
-        };
-      })
-    );
+      } else {
+        picUrl = `${SERVER_ADDRESS}/images/profiles/default-profile.png`;
+      }
+      comment.profile_picture = picUrl;
+    }
 
     res.json({
       post_id: post.post_id,

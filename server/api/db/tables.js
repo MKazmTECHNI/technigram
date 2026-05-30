@@ -51,7 +51,7 @@ router.get('/:table', authenticateToken, async (req, res) => {
     if (!(await validateTable(table))) {
       return res.status(400).json({ error: 'Invalid table name' });
     }
-    const data = await dbUtils.return_sql(`SELECT * FROM "${table}"`);
+    const data = await dbUtils.return_sql(`SELECT * FROM "${table}" LIMIT 1000`);
     res.json({ data });
   } catch (err) {
     console.error(`Error in GET /api/db/tables/${req.params.table}:`, err);

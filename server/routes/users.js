@@ -17,7 +17,7 @@ router.get("/liked-posts", authenticateToken, async (req, res) => {
       JOIN users u ON p.creator_id = u.id
       JOIN post_likes pl ON p.post_id = pl.post_id
       WHERE pl.user_id = ?
-      ORDER BY pl.rowid DESC
+      ORDER BY pl.id DESC
     `, [userId]);
 
     const postIds = posts.map(p => p.post_id);
@@ -102,7 +102,7 @@ router.get("/by-username/:username", async (req, res) => {
   const username = req.params.username;
   try {
     const result = await return_sql(
-      `SELECT id, username, true_name, profile_picture, bio, status, banner, links, permission, created_at FROM users WHERE username = ?`,
+      `SELECT id, username, true_name, profile_picture, bio, status, banner, links, custom_css, permission, created_at FROM users WHERE username = ?`,
       [username]
     );
     if (result.length === 0) {
@@ -230,21 +230,26 @@ router.post("/changeUsername", authenticateToken, async (req, res) => {
   }
 });
 
-// Update profile fields (bio, status, links)
+// Update profile fields (bio, status, links, custom_css)
 router.post("/update-profile", authenticateToken, async (req, res) => {
   const userId = req.user.id;
-  const { bio, status, links } = req.body;
+  const { bio, status, links, custom_css } = req.body;
 
   try {
-    if (bio !== undefined) {
-      await exec_sql("UPDATE users SET bio = ? WHERE id = ?", [bio, userId]);
-    }
-    if (status !== undefined) {
-      await exec_sql("UPDATE users SET status = ? WHERE id = ?", [status, userId]);
-    }
-    if (links !== undefined) {
-      await exec_sql("UPDATE users SET links = ? WHERE id = ?", [JSON.stringify(links), userId]);
-    }
+    await exec_sql(`
+      UPDATE users SET
+        bio = COALESCE(?, bio),
+        status = COALESCE(?, status),
+        links = COALESCE(?, links),
+        custom_css = COALESCE(?, custom_css)
+      WHERE id = ?
+    `, [
+      bio !== undefined ? bio : null,
+      status !== undefined ? status : null,
+      links !== undefined ? JSON.stringify(links) : null,
+      custom_css !== undefined ? (custom_css || '').slice(0, 2000) : null,
+      userId,
+    ]);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: "Failed to update profile" });

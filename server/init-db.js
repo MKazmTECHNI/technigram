@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS users (
     status TEXT DEFAULT '',
     banner TEXT DEFAULT '',
     links TEXT DEFAULT '[]',
+    custom_css TEXT DEFAULT '',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     last_activity TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     timeout TIMESTAMP DEFAULT NULL,
@@ -58,7 +59,19 @@ CREATE TABLE IF NOT EXISTS post_views (
     post_id INTEGER NOT NULL REFERENCES posts(post_id),
     user_id INTEGER REFERENCES users(id),
     viewed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);`;
+);
+CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_token ON users(token);
+CREATE INDEX IF NOT EXISTS idx_posts_creator_id ON posts(creator_id);
+CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at);
+CREATE INDEX IF NOT EXISTS idx_posts_creator_created ON posts(creator_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_comments_post_id ON comments(post_id);
+CREATE INDEX IF NOT EXISTS idx_post_likes_user_post ON post_likes(user_id, post_id);
+CREATE INDEX IF NOT EXISTS idx_post_likes_post_id ON post_likes(post_id);
+CREATE INDEX IF NOT EXISTS idx_comment_likes_user_comment ON comment_likes(user_id, comment_id);
+CREATE INDEX IF NOT EXISTS idx_follows_following ON follows(following_id);
+CREATE INDEX IF NOT EXISTS idx_post_views_post_id ON post_views(post_id);`;
 
 function initDb(callback) {
   const db = new sqlite3.Database("technigram.db");
@@ -72,6 +85,20 @@ function initDb(callback) {
       db.run("ALTER TABLE users ADD COLUMN status TEXT DEFAULT ''", () => {});
       db.run("ALTER TABLE users ADD COLUMN banner TEXT DEFAULT ''", () => {});
       db.run("ALTER TABLE users ADD COLUMN links TEXT DEFAULT '[]'", () => {});
+      db.run("ALTER TABLE users ADD COLUMN custom_css TEXT DEFAULT ''", () => {});
+      // Indexes (safe to run again, IF NOT EXISTS)
+      db.run("CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)");
+      db.run("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)");
+      db.run("CREATE INDEX IF NOT EXISTS idx_users_token ON users(token)");
+      db.run("CREATE INDEX IF NOT EXISTS idx_posts_creator_id ON posts(creator_id)");
+      db.run("CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at)");
+      db.run("CREATE INDEX IF NOT EXISTS idx_posts_creator_created ON posts(creator_id, created_at DESC)");
+      db.run("CREATE INDEX IF NOT EXISTS idx_comments_post_id ON comments(post_id)");
+      db.run("CREATE INDEX IF NOT EXISTS idx_post_likes_user_post ON post_likes(user_id, post_id)");
+      db.run("CREATE INDEX IF NOT EXISTS idx_post_likes_post_id ON post_likes(post_id)");
+      db.run("CREATE INDEX IF NOT EXISTS idx_comment_likes_user_comment ON comment_likes(user_id, comment_id)");
+      db.run("CREATE INDEX IF NOT EXISTS idx_follows_following ON follows(following_id)");
+      db.run("CREATE INDEX IF NOT EXISTS idx_post_views_post_id ON post_views(post_id)");
       console.log("Database initialized (if needed)");
       if (callback) callback(null);
     }

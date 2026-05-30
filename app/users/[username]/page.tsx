@@ -45,6 +45,7 @@ type UserProfile = {
   status?: string;
   banner?: string;
   links?: LinkItem[];
+  custom_css?: string;
   permission?: string;
   created_at?: string;
 };
@@ -97,6 +98,7 @@ export default function UserProfilePage() {
   const [editBio, setEditBio] = useState("");
   const [editStatus, setEditStatus] = useState("");
   const [editLinks, setEditLinks] = useState<LinkItem[]>([]);
+  const [editCustomCss, setEditCustomCss] = useState("");
   const [newLinkLabel, setNewLinkLabel] = useState("");
   const [newLinkUrl, setNewLinkUrl] = useState("");
   const [profileMsg, setProfileMsg] = useState("");
@@ -291,6 +293,7 @@ export default function UserProfilePage() {
     setEditBio(profile?.bio || "");
     setEditStatus(profile?.status || "");
     setEditLinks(profile?.links?.slice() || []);
+    setEditCustomCss(profile?.custom_css || "");
     setNewLinkLabel("");
     setNewLinkUrl("");
     setEditMode(true);
@@ -316,10 +319,10 @@ export default function UserProfilePage() {
     const res = await fetch(`${serverAddress}/users/update-profile`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${currentUser.token}` },
-      body: JSON.stringify({ bio: editBio, status: editStatus, links: editLinks }),
+      body: JSON.stringify({ bio: editBio, status: editStatus, links: editLinks, custom_css: editCustomCss }),
     });
     if (res.ok) {
-      setProfile((p) => p ? { ...p, username: editUsername, bio: editBio, status: editStatus, links: editLinks } : p);
+      setProfile((p) => p ? { ...p, username: editUsername, bio: editBio, status: editStatus, links: editLinks, custom_css: editCustomCss } : p);
       setEditMode(false);
       showMsg("Profile updated!");
     }
@@ -394,7 +397,7 @@ export default function UserProfilePage() {
   const handleBannerUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !currentUser) return;
-    handleFileSelect(file, 4 * 1024 * 1024, 3, uploadBannerBlob);
+    handleFileSelect(file, 4 * 1024 * 1024, 2, uploadBannerBlob);
   };
 
   if (loading) {
@@ -409,6 +412,9 @@ export default function UserProfilePage() {
 
   return (
     <div className="profile-page">
+      {profile.custom_css && (
+        <style>{profile.custom_css}</style>
+      )}
       {/* Banner */}
       <div className="banner-wrap">
         {profile.banner ? (
@@ -542,21 +548,38 @@ export default function UserProfilePage() {
           </div>
 
           {editMode && (
-            <div className="inline-edit-wrap">
-              <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 8 }}>
-                {editLinks.map((link, i) => (
-                  <div key={i} className="link-item">
-                    {link.label} — {link.url}
-                    <span className="remove-link" onClick={() => removeLink(i)}>✕</span>
-                  </div>
-                ))}
+            <>
+              <div className="inline-edit-wrap">
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 8 }}>
+                  {editLinks.map((link, i) => (
+                    <div key={i} className="link-item">
+                      {link.label} — {link.url}
+                      <span className="remove-link" onClick={() => removeLink(i)}>✕</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="add-link-form">
+                  <input placeholder="Label" value={newLinkLabel} onChange={(e) => setNewLinkLabel(e.target.value)} maxLength={30} />
+                  <input placeholder="URL" value={newLinkUrl} onChange={(e) => setNewLinkUrl(e.target.value)} />
+                  <button onClick={addLink}>Add</button>
+                </div>
               </div>
-              <div className="add-link-form">
-                <input placeholder="Label" value={newLinkLabel} onChange={(e) => setNewLinkLabel(e.target.value)} maxLength={30} />
-                <input placeholder="URL" value={newLinkUrl} onChange={(e) => setNewLinkUrl(e.target.value)} />
-                <button onClick={addLink}>Add</button>
-              </div>
-            </div>
+              <details style={{ marginTop: 4 }}>
+                <summary style={{ color: "#666", fontSize: "0.85em", cursor: "pointer" }}>Custom CSS</summary>
+                <textarea
+                  value={editCustomCss}
+                  onChange={(e) => setEditCustomCss(e.target.value)}
+                  rows={6}
+                  maxLength={2000}
+                  placeholder=".profile-bio { color: red; } /* classes: banner-wrap, profile-pic, profile-truename, profile-username, rank-badge, profile-bio, profile-link, profile-follow-btn */"
+                  style={{
+                    width: "100%", marginTop: 6, background: "#1a1a1a", border: "1px solid #3a3a3a",
+                    borderRadius: 8, color: "#c6a4ff", padding: "10px 12px", fontSize: "0.85em",
+                    fontFamily: "monospace", resize: "vertical", boxSizing: "border-box",
+                  }}
+                />
+              </details>
+            </>
           )}
 
           <div className="profile-follow-counts">

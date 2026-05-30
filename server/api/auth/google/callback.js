@@ -38,14 +38,17 @@ router.post("/", async (req, res) => {
     // Example: In your .env file, add:
     // ALLOWED_EMAILS=u123_abcdef_xyz@technischools.com,anotheruser@domain.com
 
-    // Fetch allowed emails from DB
-    const allowed_emails_result = await return_sql(`SELECT email FROM allowed_emails`);
-    const allowed_emails = allowed_emails_result.map(row => row.email);
+    // Check if email is allowed (direct query, not full table fetch)
+    const allowedResult = await return_sql(
+      `SELECT 1 FROM allowed_emails WHERE email = ?`,
+      [email]
+    );
+    const isAllowed = allowedResult.length > 0;
 
     // Validate email pattern
     if (
       !/^u\d{3}_[a-z]{6}_[a-z]{3}@technischools\.com$/.test(email) &&
-      !allowed_emails.includes(email)
+      !isAllowed
     ){
       console.error("[Google Callback] Invalid email format:", email);
       return res.status(403).json({ error: "Invalid email format" });

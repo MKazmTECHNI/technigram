@@ -5,7 +5,7 @@
 .banner-wrap {
   position: relative;
   width: 100%;
-  height: 260px;
+  height: 300px;
   overflow: hidden;
   background: #121212;
 }
@@ -302,7 +302,7 @@
 
 @media (max-width: 768px) {
   .banner-wrap {
-    height: 180px;
+    height: 200px;
   }
   .profile-info-section {
     padding: 0 14px;
